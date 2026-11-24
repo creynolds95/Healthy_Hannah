@@ -74,7 +74,7 @@ a { color: inherit; text-decoration: none; }
 .sp-verse::before { content: "\201C"; } .sp-verse::after { content: "\201D"; }
 .sp-ref { display: block; margin-top: 8px; font-size: 13px; letter-spacing: .08em; color: #8A4E44; font-style: normal; }
 .sp-line { margin-top: 22px; padding-top: 18px; border-top: 1px solid rgba(138,78,68,.22); font-size: 15px; line-height: 1.5; color: #4A3A36; }
-.sp-go { width: 100%; max-width: 360px; height: 54px; border: 0; border-radius: 27px; background: #2B2422; color: #FFF; font: 500 16px/1 Jost, system-ui, sans-serif; letter-spacing: .06em; cursor: pointer; opacity: 0; transition: opacity .5s var(--ease) .35s, transform .15s; }
+.sp-go { width: 100%; max-width: 360px; height: 54px; border: 0; border-radius: 27px; background: #FFFFFF; color: #2B2422; font: 500 16px/1 Jost, system-ui, sans-serif; letter-spacing: .06em; cursor: pointer; opacity: 0; transition: opacity .5s var(--ease) .35s, transform .15s; }
 .sp-go.in { opacity: 1; } .sp-go:active { transform: scale(.98); }
 #splash.gone { opacity: 0; pointer-events: none; }
 @media (max-height: 640px) { #splash img { width: 130px; } .sp-verse { font-size: 17px; } }
