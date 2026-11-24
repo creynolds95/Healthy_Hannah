@@ -1417,10 +1417,12 @@ if (cloudOn()) fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).t
   const [vt, vr] = VERSES[dn % VERSES.length];
   const line = assistsOn() && cloud.enc && cloud.enc.date === d ? cloud.enc.line : AFFIRM[(dn * 5) % AFFIRM.length];
   const h = new Date().getHours(); const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  // One thing per open, alternating verse and encouragement so it stays short and fresh.
+  let n = 0; try { n = +localStorage.getItem('hh.spn') || 0; localStorage.setItem('hh.spn', String(n + 1)); } catch {}
+  const showVerse = S.settings.verse && n % 2 === 0;
   const w = $('#spWords');
   w.innerHTML = `<div class="sp-greet">${esc(greet)}, ${esc(S.settings.name)}</div>`
-    + (S.settings.verse ? `<p class="sp-verse">${esc(vt)}</p><cite class="sp-ref">${esc(vr)}</cite>` : '')
-    + `<div class="sp-line" id="spLine"${S.settings.verse ? '' : ' style="border:0;margin:0;padding:0;font-size:19px"'}>${esc(line)}</div>`;
+    + (showVerse ? `<p class="sp-verse">${esc(vt)}</p><cite class="sp-ref">${esc(vr)}</cite>` : `<p class="sp-verse sp-enc" id="spLine">${esc(line)}</p>`);
   const go = $('#spGo');
   requestAnimationFrame(() => requestAnimationFrame(() => { w.classList.add('in'); go.classList.add('in'); go.focus({ preventScroll: true }); }));
   go.addEventListener('click', () => { splash.classList.add('gone'); setTimeout(() => splash.remove(), 450); }, { once: true });
