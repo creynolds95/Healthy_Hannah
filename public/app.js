@@ -1023,7 +1023,7 @@ function loadEncouragement(d) {
   if (loadEncouragement.busy === d) return; loadEncouragement.busy = d;
   const c = S.settings.cycle ? cycleInfo(d) : null;
   apiCall('ai/encourage', { method: 'POST', body: { date: d, summary: { name: S.settings.name, today: { date: d, plan: planFor(d).map(id => S.routines[id].name) }, last_7_days: weekSummary(addDays(d, -7), 7), streak_days: streak(), cycle_phase: c && !c.stale ? c.phase : null } } })
-    .then(r => { cloud.enc = { date: d, line: String(r.data.line || '').slice(0, 220) }; saveCloud(); if (cloud.enc.line) for (const el of [$('#affLine'), $('#spLine')]) if (el) el.textContent = cloud.enc.line; })
+    .then(r => { cloud.enc = { date: d, line: String(r.data.line || '').slice(0, 220) }; saveCloud(); const el = $('#affLine'); if (el && cloud.enc.line) el.textContent = cloud.enc.line; })
     .catch(() => {}).finally(() => { loadEncouragement.busy = null; });
 }
 function reflectWeek() {
@@ -1413,16 +1413,27 @@ if (cloudOn()) fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).t
 // Splash: today's verse + encouragement, then she taps in.
 (function splashIn() {
   const splash = $('#splash'); if (!splash) return;
-  const d = todayStr(); const dn = Math.floor(parse(d).getTime() / 864e5);
-  const [vt, vr] = VERSES[dn % VERSES.length];
-  const line = assistsOn() && cloud.enc && cloud.enc.date === d ? cloud.enc.line : AFFIRM[(dn * 5) % AFFIRM.length];
+  const d = todayStr();
   const h = new Date().getHours(); const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
-  // One thing per open, alternating verse and encouragement so it stays short and fresh.
-  let n = 0; try { n = +localStorage.getItem('hh.spn') || 0; localStorage.setItem('hh.spn', String(n + 1)); } catch {}
-  const showVerse = S.settings.verse && n % 2 === 0;
+  // Shuffle bag, like a playlist on shuffle: every verse and encouragement plays once, in random order, before any repeats.
+  const pool = AFFIRM.map((_, i) => 'a' + i).concat(S.settings.verse ? VERSES.map((_, i) => 'v' + i) : []);
+  let st = {}; try { st = JSON.parse(localStorage.getItem('hh.spbag')) || {}; } catch {}
+  let bag = (st.bag || []).filter(k => pool.includes(k));
+  if (!bag.length) {
+    bag = pool.slice();
+    for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+    if (bag.length > 1 && bag[0] === st.last) bag.push(bag.shift());
+  }
+  const pick = bag.shift();
+  // Today's personal Haiku line, when there is one, takes the first encouragement slot of the day.
+  const ai = assistsOn() && cloud.enc && cloud.enc.date === d && cloud.enc.line && st.aiDay !== d;
+  if (ai && pick[0] === 'a') bag.unshift(pick);
+  try { localStorage.setItem('hh.spbag', JSON.stringify({ bag, last: pick, aiDay: ai && pick[0] === 'a' ? d : st.aiDay })); } catch {}
   const w = $('#spWords');
-  w.innerHTML = `<div class="sp-greet">${esc(greet)}, ${esc(S.settings.name)}</div>`
-    + (showVerse ? `<p class="sp-verse">${esc(vt)}</p><cite class="sp-ref">${esc(vr)}</cite>` : `<p class="sp-verse sp-enc" id="spLine">${esc(line)}</p>`);
+  let words;
+  if (pick[0] === 'v') { const [vt, vr] = VERSES[+pick.slice(1)]; words = `<p class="sp-verse">${esc(vt)}</p><cite class="sp-ref">${esc(vr)}</cite>`; }
+  else words = `<p class="sp-verse sp-enc">${esc(ai ? cloud.enc.line : AFFIRM[+pick.slice(1)])}</p>`;
+  w.innerHTML = `<div class="sp-greet">${esc(greet)}, ${esc(S.settings.name)}</div>` + words;
   const go = $('#spGo');
   requestAnimationFrame(() => requestAnimationFrame(() => { w.classList.add('in'); go.classList.add('in'); go.focus({ preventScroll: true }); }));
   go.addEventListener('click', () => { splash.classList.add('gone'); setTimeout(() => splash.remove(), 450); }, { once: true });
