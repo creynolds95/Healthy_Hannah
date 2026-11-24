@@ -56,12 +56,12 @@ a { color: inherit; text-decoration: none; }
 
 /* Splash */
 #splash {
-  position: fixed; inset: 0; z-index: 100; background: var(--bg);
+  position: fixed; inset: 0; z-index: 100; background: #F2DCD6;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
   transition: opacity var(--t-out) var(--ease);
 }
-#splash img { border-radius: 26px; box-shadow: 0 12px 36px rgba(176, 111, 100, .25); }
-.splash-name { font-weight: 300; font-size: 22px; letter-spacing: .28em; text-transform: uppercase; color: var(--ink); padding-left: .28em; }
+#splash img { width: min(64vw, 280px); height: auto; }
+.splash-name { font-weight: 300; font-size: 22px; letter-spacing: .28em; text-transform: uppercase; color: #2B2422; padding-left: .28em; margin-top: -8px; }
 #splash.gone { opacity: 0; pointer-events: none; }
 
 /* Shell */

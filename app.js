@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '1.1.1';
+const VERSION = '1.1.2';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
