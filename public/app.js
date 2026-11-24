@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.0.0';
+const VERSION = '2.0.5';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -729,7 +729,8 @@ function renderMore(v) {
   <div class="h2">Data</div><div class="card rows">
     <a class="r" href="#more/sync" data-push><span class="l">Cloud sync<small>Backup, more devices, reminders, assists</small></span><span class="v">${cloudOn() ? 'On' : 'Off'}</span>${CHEV}</a>
     <a class="r" href="#more/backup" data-push><span class="l">Backup file<small>${cloudOn() ? 'Also backed up to the cloud' : 'Saved on this phone only'}</small></span>${CHEV}</a>
-    <div class="r"><span class="l">Version</span><span class="v">${VERSION}</span></div></div>
+    <div class="r"><span class="l">Version</span><span class="v">${VERSION}</span></div>
+    <div class="r"><span class="l">Screen</span><span class="v" style="font-size:12px">${screenInfo()}</span></div></div>
   <p class="note" style="text-align:center;margin-top:18px">Made with love for Hannah.</p>`;
   void perm;
 }
@@ -1016,6 +1017,12 @@ function weekSummary(from, days) {
     });
   }
   return out;
+}
+function screenInfo() {
+  const p = document.createElement('div'); p.style.cssText = 'position:fixed;visibility:hidden;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)'; document.body.appendChild(p);
+  const cs = getComputedStyle(p); const t = parseInt(cs.paddingTop), b = parseInt(cs.paddingBottom); p.remove();
+  const bar = $('#tabbar').getBoundingClientRect();
+  return `${screen.width}x${screen.height} · win ${innerHeight} · app ${Math.round($('#root').getBoundingClientRect().height)} · bar ${Math.round(bar.bottom)} · safe ${t}/${b}`;
 }
 function loadEncouragement(d) {
   if (!assistsOn() || d !== todayStr()) return;
