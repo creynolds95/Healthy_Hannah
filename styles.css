@@ -10,11 +10,11 @@
   --rose-ink: #8A4E44;
   --butter: #F4E6BF;
   --butter-ink: #6E5A2A;
-  --bg: #FAF0EC;
+  --bg: #FFFFFF;
   --card: #FFFFFF;
   --ink: #2B2422;
   --muted: #8A7470;
-  --line: #EEDAD4;
+  --line: #F0E2DD;
   --ok: #6F9A80;
   --warm: #B8874A;
   --dim: rgba(43, 36, 34, .4);
@@ -105,7 +105,7 @@ a { color: inherit; text-decoration: none; }
 .hero .big { font-size: 30px; font-weight: 400; letter-spacing: -.005em; line-height: 1.15; margin-top: 2px; }
 .hero .sub { color: var(--muted); margin-top: 4px; }
 .h2 { font-size: 12px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .16em; margin: 22px 4px 8px; }
-.card { background: var(--card); border-radius: 18px; box-shadow: 0 1px 0 var(--line), 0 6px 20px rgba(138, 78, 68, .06); overflow: hidden; }
+.card { background: var(--card); border-radius: 18px; border: 1px solid var(--line); overflow: hidden; }
 .card + .card { margin-top: 12px; }
 .muted { color: var(--muted); }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 18px; border-radius: 14px; font-weight: 650; }
@@ -162,11 +162,11 @@ a { color: inherit; text-decoration: none; }
 .ex:active .check i { transform: scale(.9); }
 
 .habit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.habit { background: var(--card); border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 10px; min-height: 60px; text-align: left; box-shadow: 0 1px 0 var(--line); }
+.habit { background: var(--card); border-radius: 16px; padding: 12px; display: flex; align-items: center; gap: 10px; min-height: 60px; text-align: left; border: 1px solid var(--line); }
 .habit .e { font-size: 22px; }
 .habit .l { flex: 1; font-weight: 600; font-size: 15px; line-height: 1.2; }
 .habit .c { font-size: 13px; color: var(--muted); font-weight: 650; }
-.habit.done { background: var(--butter); }
+.habit.done { background: var(--butter); border-color: var(--butter); }
 .habit.done .l { color: var(--butter-ink); }
 
 .rest-card { padding: 22px 18px; text-align: center; }
@@ -183,7 +183,7 @@ a { color: inherit; text-decoration: none; }
 .chip.off { background: transparent; border: 1px dashed var(--line); color: var(--muted); }
 
 /* Fields */
-.field { width: 100%; border: 1.5px solid var(--line); background: var(--bg); border-radius: 12px; padding: 11px 12px; outline: none; }
+.field { width: 100%; border: 1.5px solid var(--line); background: var(--card); border-radius: 12px; padding: 11px 12px; outline: none; }
 .field:focus { border-color: var(--rose-2); }
 .field.invalid { border-color: var(--warm); }
 .frow { display: flex; align-items: center; gap: 12px; padding: 8px 16px; min-height: 56px; border-top: 1px solid var(--line); }
@@ -214,7 +214,7 @@ a { color: inherit; text-decoration: none; }
 .bars-x span { flex: 1; white-space: nowrap; overflow: visible; text-align: center; font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; }
 .readout { min-height: 22px; font-size: 14px; font-weight: 600; text-align: center; color: var(--rose-ink); margin-bottom: 6px; }
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.stat { background: var(--card); border-radius: 16px; padding: 12px; box-shadow: 0 1px 0 var(--line); }
+.stat { background: var(--card); border-radius: 16px; padding: 12px; border: 1px solid var(--line); }
 .stat b { display: block; font-size: 26px; font-weight: 400; letter-spacing: -.02em; }
 .stat span { color: var(--muted); font-size: 12px; font-weight: 600; }
 .chips-range { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
@@ -281,3 +281,28 @@ a { color: inherit; text-decoration: none; }
 .verse::after { content: ""; position: absolute; right: -36px; bottom: -40px; width: 120px; height: 120px; border-radius: 50%; background: var(--rose-soft); opacity: .7; }
 .verse q { display: block; font-size: 16px; line-height: 1.5; color: var(--butter-ink); quotes: "\201C" "\201D"; position: relative; z-index: 1; }
 .verse cite { display: block; font-style: normal; font-size: 12px; margin-top: 8px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); position: relative; z-index: 1; }
+
+.ic { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.ic.lg { width: 30px; height: 30px; color: var(--rose); }
+.e { display: inline-flex; color: var(--rose-ink); }
+.sess-h .emo { color: var(--rose-ink); }
+.sess-h .emo .ic { width: 22px; height: 22px; }
+.btn .ic { width: 18px; height: 18px; }
+.mood button { display: inline-flex; align-items: center; justify-content: center; color: var(--muted); border: 1.5px solid var(--line); }
+.mood button .ic { width: 30px; height: 30px; stroke-width: 1.4; }
+.mood button[aria-pressed="true"] { color: var(--rose-ink); border-color: var(--rose); background: var(--rose-soft); }
+.badge { width: 44px; height: 44px; margin: 0 auto 4px; border-radius: 50%; border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); }
+.badge.got { background: var(--butter); border-color: var(--butter); color: var(--butter-ink); }
+.icon-pick { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.icon-pick button { height: 44px; border-radius: 12px; border: 1.5px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.icon-pick button[aria-checked="true"] { border-color: var(--rose); background: var(--rose-soft); color: var(--rose-ink); }
+.cycle { padding: 4px 0 14px; }
+.cy-h { display: flex; align-items: center; gap: 12px; padding: 10px 8px 6px 16px; }
+.cy-h .l { flex: 1; } .cy-h b { font-weight: 500; } .cy-h small { display: block; color: var(--muted); font-size: 13px; }
+.cy-tip { margin: 6px 16px 0; font-size: 15px; line-height: 1.45; }
+.cy-tip span { display: block; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.cy-more { margin: 10px 16px 0; }
+.cy-more summary { color: var(--rose); font-weight: 500; font-size: 14px; min-height: 36px; display: flex; align-items: center; cursor: pointer; list-style: none; }
+.cy-more summary::-webkit-details-marker { display: none; }
+.cy-more .cy-tip { margin: 8px 0 0; }
+.cy-grace { margin: 12px 16px 0; padding: 12px 14px; border-radius: 14px; background: var(--rose-soft); color: var(--rose-ink); font-size: 15px; line-height: 1.45; }

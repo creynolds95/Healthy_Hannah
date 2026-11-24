@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '1.1.2';
+const VERSION = '1.3.0';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -65,6 +65,36 @@ const DAY_DONE = [
 ];
 const MISSED = 'His mercies are new every morning. Today is a fresh start.';
 
+
+// ---------- Line icons (no emoji) ----------
+const IC = {
+  wave: 'M3 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0M3 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0',
+  dumbbell: 'M6.5 7v10M3.5 9.5v5M17.5 7v10M20.5 9.5v5M6.5 12h11',
+  flower: 'M12 9.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM12 9.5C10 7 10.5 3.5 12 3c1.5.5 2 4 0 6.5zM12 14.5c2 2.5 1.5 6-0 6.5-1.5-.5-2-4 0-6.5zM9.5 12C7 14 3.5 13.5 3 12c.5-1.5 4-2 6.5 0zM14.5 12c2.5-2 6-1.5 6.5 0-.5 1.5-4 2-6.5 0z',
+  lotus: 'M12 19c-4 0-8-2-9-6 3 0 6 1.5 9 6zM12 19c4 0 8-2 9-6-3 0-6 1.5-9 6zM12 19c-2.2-3-2.2-8.5 0-12 2.2 3.5 2.2 9 0 12z',
+  ring: 'M12 6a7 7 0 1 1 0 14 7 7 0 0 1 0-14zM9.5 3.5h5M12 3.5V6',
+  drop: 'M12 3.5c3 4 6 7 6 10.5a6 6 0 0 1-12 0c0-3.5 3-6.5 6-10.5z',
+  steps: 'M8 3.5c1.6 0 2.5 2 2.5 4s-1 4-2.5 4-2.5-2-2.5-4 .9-4 2.5-4zM6.5 14.5h3M16 8c1.6 0 2.5 2 2.5 4s-1 4-2.5 4-2.5-2-2.5-4 .9-4 2.5-4zM14.5 19h3',
+  pill: 'M4 12a4 4 0 0 1 4-4h8a4 4 0 0 1 0 8H8a4 4 0 0 1-4-4zM12 8v8',
+  book: 'M3 6c3-1 6-1 9 1 3-2 6-2 9-1v12c-3-1-6-1-9 1-3-2-6-2-9-1zM12 7v12',
+  heart: 'M12 20s-7-4.5-9-9.2C1.6 7.4 3.8 4 7.2 4c2 0 3.5 1.1 4.8 2.7C13.3 5.1 14.8 4 16.8 4c3.4 0 5.6 3.4 4.2 6.8C19 15.5 12 20 12 20z',
+  leaf: 'M5 19C5 10 10 5 19 5c0 9-5 14-14 14zM5 19l8-8',
+  moon: 'M19.5 14.5A8 8 0 1 1 9.5 4.5a6.5 6.5 0 0 0 10 10z',
+  sprout: 'M12 20v-8M12 12c0-4-3-6.5-7-6.5 0 4 3 6.5 7 6.5zM12 14.5c0-3 2-5.5 6-5.5 0 3-2 5.5-6 5.5z',
+  sun: 'M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8zM12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4',
+  spark: 'M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8z',
+  run: 'M14 4.5a1.5 1.5 0 1 1 0 .1M8 20l3-5 3 2v3M7 11l3-3 4 1 2 3 3 1M11 15l1-5',
+  bike: 'M6 17.5a3.5 3.5 0 1 1 0-.1M18 17.5a3.5 3.5 0 1 1 0-.1M6 17.5l4-7h5l3 7M9 7h3M10 10.5l2 7',
+};
+const ICON_KEYS = ['wave', 'dumbbell', 'flower', 'lotus', 'ring', 'heart', 'leaf', 'sun', 'spark', 'run', 'bike', 'drop', 'steps', 'pill', 'book', 'moon', 'sprout'];
+const EMOJI_MAP = { '🌊': 'wave', '🍑': 'dumbbell', '💪': 'dumbbell', '🌸': 'flower', '🧘‍♀️': 'lotus', '💍': 'ring', '💧': 'drop', '🚶‍♀️': 'steps', '💊': 'pill', '🙏': 'book', '✨': 'spark' };
+const icKey = k => (IC[k] ? k : EMOJI_MAP[k] || 'spark');
+const ic = (k, cls) => `<svg class="ic ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="${IC[icKey(k)]}"/></svg>`;
+const FACES = ['M8 16.5c2-2 6-2 8 0', 'M8.5 15h7', 'M8.5 14.5c2 1.3 5 1.3 7 0', 'M8 14c2 3 6 3 8 0', 'M7.5 13.5c2 4.5 7 4.5 9 0z'];
+const MOOD_LABELS = ['Low', 'Okay', 'Good', 'Happy', 'Wonderful'];
+const face = i => `<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9 9.5v.5M15 9.5v.5"/><path d="${FACES[i]}"/></svg>`;
+const moodIdx = m => { const old = ['😔', '😐', '🙂', '😊', '🥰'].indexOf(m); return old >= 0 ? old : (m === '' || m == null ? -1 : Number(m)); };
+
 // ---------- Seed: her Apple Note ----------
 let _id = Date.now();
 const uid = () => (++_id).toString(36);
@@ -75,7 +105,7 @@ function seed() {
     v: 1,
     routines: {
       mobility: {
-        name: 'Mobility Movements', emoji: '🌊',
+        name: 'Mobility Movements', emoji: 'wave',
         note: 'Video version: 1 minute of each move, finish with fascia slaps and a deep inhale, hold, long exhale.',
         items: [
           ex('Lymph jumps', '30'), ex('Body waves', '30'), ex('Arm waves', '30'), ex('Marches', '30'),
@@ -87,7 +117,7 @@ function seed() {
         ],
       },
       resistance: {
-        name: 'Resistance', emoji: '🍑',
+        name: 'Resistance', emoji: 'dumbbell',
         note: 'Starter glute set. Swap in moves from the glutes video as you go.',
         items: [
           ex('Glute bridges (band or weight)', '3×15'), ex('Clamshells', '3×12 each'), ex('Goblet squats', '3×10'),
@@ -99,7 +129,7 @@ function seed() {
         ],
       },
       hipscore: {
-        name: 'Hips + Core', emoji: '🌸',
+        name: 'Hips + Core', emoji: 'flower',
         note: 'Breathe out on the effort. Ease off if you feel pressure or see doming along your middle.',
         items: [
           ex('Toe taps', '26'), ex('Glute bridges', '26'), ex('Bird dog', '26'), ex('Dead bugs', '26'),
@@ -116,23 +146,23 @@ function seed() {
         ],
       },
       yoga: {
-        name: 'Yoga', emoji: '🧘‍♀️', note: '',
+        name: 'Yoga', emoji: 'lotus', note: '',
         items: [ex('Somatic flow', '12 min')],
         refs: [
           { id: uid(), kind: 'link', title: '12 minutes of somatic flow (The InspiroGrow)', url: 'https://www.pinterest.com/search/pins/?q=12%20minutes%20of%20somatic%20flow%20inspirogrow' },
         ],
       },
       ringfit: {
-        name: 'Ring Fit', emoji: '💍', note: 'Add to any day on the Plan tab.',
+        name: 'Ring Fit', emoji: 'ring', note: 'Add to any day on the Plan tab.',
         items: [ex('Ring Fit session', '20 min')], refs: [],
       },
     },
     week: { 0: [], 1: ['mobility', 'resistance'], 2: ['hipscore', 'yoga'], 3: ['mobility', 'resistance'], 4: ['hipscore', 'yoga'], 5: ['mobility', 'resistance'], 6: [] },
     habits: [
-      { id: 'water', name: 'Water', emoji: '💧', target: 8, unit: 'glasses' },
-      { id: 'walk', name: 'Walk outside', emoji: '🚶‍♀️', target: 1 },
-      { id: 'vitamins', name: 'Vitamins', emoji: '💊', target: 1 },
-      { id: 'prayer', name: 'Quiet time', emoji: '🙏', target: 1 },
+      { id: 'water', name: 'Water', emoji: 'drop', target: 8, unit: 'glasses' },
+      { id: 'walk', name: 'Walk outside', emoji: 'steps', target: 1 },
+      { id: 'vitamins', name: 'Vitamins', emoji: 'pill', target: 1 },
+      { id: 'prayer', name: 'Quiet time', emoji: 'book', target: 1 },
     ],
     log: {},
     settings: { name: 'Hannah', theme: 'auto', verse: true, cycle: false, remindTime: '08:00', checkinTime: '20:00', badge: false },
@@ -146,6 +176,8 @@ function load() {
   if (!S || !S.routines) S = seed();
   S.settings = Object.assign(seed().settings, S.settings || {});
   S.log = S.log || {};
+  Object.values(S.routines).forEach(r => { r.emoji = icKey(r.emoji); });
+  S.habits.forEach(h => { h.emoji = icKey(h.emoji); });
 }
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Couldn’t save on this device. Storage may be full.'); }
@@ -270,8 +302,9 @@ function celebrate(big) {
   for (let i = 0; i < n; i++) {
     const s = document.createElement('span');
     const x = 50 + (Math.random() - .5) * 70, dx = (Math.random() - .5) * 160, dur = 900 + Math.random() * 700;
-    s.textContent = ['💗', '🌸', '✨', '💕'][i % 4];
-    s.style.cssText = `position:absolute;left:${x}%;bottom:18%;font-size:${16 + Math.random() * 14}px;opacity:0`;
+    const col = ['#E7BFB5', '#F4E6BF', '#B06F64', '#D9A79C'][i % 4]; const sz = 10 + Math.random() * 10;
+    s.innerHTML = i % 2 ? `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24"><path d="${IC.heart}" fill="${col}"/></svg>` : `<svg width="${sz}" height="${sz}" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="${col}"/></svg>`;
+    s.style.cssText = `position:absolute;left:${x}%;bottom:18%;opacity:0`;
     layer.appendChild(s);
     s.animate([{ transform: 'translate(0,0) scale(.6)', opacity: 0 }, { opacity: 1, offset: .15 },
       { transform: `translate(${dx}px,-${280 + Math.random() * 220}px) scale(1)`, opacity: 0 }],
@@ -390,12 +423,12 @@ function renderToday(v) {
   const hour = new Date().getHours();
   const greet = !isToday ? DAYS_LONG[parse(d).getDay()] : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
   const C = 2 * Math.PI * 37;
-  const [vt, vr] = pick(VERSES, d); const aff = pick(AFFIRM, d + 'a');
+  const dn = Math.floor(parse(d).getTime() / 864e5); const [vt, vr] = VERSES[dn % VERSES.length]; const aff = AFFIRM[(dn * 5) % AFFIRM.length];
   const firstDay = Object.keys(S.log).sort()[0];
   const missedYesterday = isToday && firstDay && firstDay <= addDays(d, -1) && !dayProgress(addDays(d, -1)).rest && !showedUp(addDays(d, -1));
 
   let html = `<div class="today-top">
-    <div class="ring" role="img" aria-label="${pct}% done"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="37"/><circle class="fg" cx="42" cy="42" r="37" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p.pct)}"/></svg><div class="pct">${p.rest && !p.extraFull ? '🌿' : pct + '%'}</div></div>
+    <div class="ring" role="img" aria-label="${pct}% done"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="37"/><circle class="fg" cx="42" cy="42" r="37" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p.pct)}"/></svg><div class="pct">${p.rest && !p.extraFull ? ic('leaf', 'lg') : pct + '%'}</div></div>
     <div><div class="hero" style="padding:0"><div class="eyebrow">${esc(greet)}${isToday ? ', ' + esc(S.settings.name) : ''}</div>
     <div class="big" style="font-size:24px">${p.rest && !p.extraFull ? 'Rest day' : p.pct >= 1 ? 'All done' : p.k ? `${p.n - p.k} to go` : planFor(d).map(id => S.routines[id].name).join(' + ')}</div>
     <div class="sub" style="font-size:14px">${esc(aff)}</div></div></div></div>`;
@@ -409,7 +442,7 @@ function renderToday(v) {
   html += '<div class="h2">Workouts</div>';
   if (!ids.length) {
     html += `<div class="card rest-card"><b>Rest and recover</b><span class="muted">Rest is part of the plan. Feel like moving?</span>
-      <div class="row-gap" style="justify-content:center;margin-top:12px">${Object.keys(S.routines).map(id => `<button class="btn soft" data-act="addsess" data-id="${id}" data-d="${d}">${S.routines[id].emoji} ${esc(S.routines[id].name)}</button>`).join('')}</div></div>`;
+      <div class="row-gap" style="justify-content:center;margin-top:12px">${Object.keys(S.routines).map(id => `<button class="btn soft" data-act="addsess" data-id="${id}" data-d="${d}">${ic(S.routines[id].emoji)} ${esc(S.routines[id].name)}</button>`).join('')}</div></div>`;
   }
   ids.forEach(id => html += sessionCard(d, id));
   if (ids.length) html += `<div style="text-align:center;margin-top:6px"><button class="btn quiet" data-act="extra" data-d="${d}">＋ Add a workout</button></div>`;
@@ -419,28 +452,95 @@ function renderToday(v) {
   S.habits.forEach(hb => {
     const c = (L.habits || {})[hb.id] || 0; const done = c >= hb.target;
     html += `<button class="habit ${done ? 'done' : ''}" data-act="habit" data-id="${hb.id}" data-d="${d}" aria-label="${esc(hb.name)} ${c} of ${hb.target}">
-      <span class="e">${hb.emoji}</span><span class="l">${esc(hb.name)}</span><span class="c">${hb.target > 1 ? c + '/' + hb.target : done ? '✓' : ''}</span></button>`;
+      <span class="e">${ic(hb.emoji)}</span><span class="l">${esc(hb.name)}</span><span class="c">${hb.target > 1 ? c + '/' + hb.target : done ? '✓' : ''}</span></button>`;
   });
   html += '</div>';
 
   const m = L.m || {};
   html += `<div class="h2">Heart</div><div class="card rows">
-    <button class="r" data-act="log" data-d="${d}"><span class="l">${m.win ? esc(m.win) : 'How was today?'}<small>${m.grateful ? 'Grateful for ' + esc(m.grateful) : 'Mood, one win, one thing you’re grateful for'}</small></span>${m.mood ? '<span style="font-size:22px">' + m.mood + '</span>' : ''}${CHEV}</button>
+    <button class="r" data-act="log" data-d="${d}"><span class="l">${m.win ? esc(m.win) : 'How was today?'}<small>${m.grateful ? 'Grateful for ' + esc(m.grateful) : 'Mood, one win, one thing you’re grateful for'}</small></span>${moodIdx(m.mood) >= 0 ? '<span class="e">' + face(moodIdx(m.mood)) + '</span>' : ''}${CHEV}</button>
   </div>`;
   v.innerHTML = html;
 }
 // ---------- Cycle-aware tips (optional) ----------
+// Cycle insights: one short line a day, rotated in order so nothing repeats within a phase.
+const PHASES = {
+  menstrual: { name: 'Menstrual', icon: 'moon', tips: [
+    ['Your body', 'Estrogen and progesterone are at their lowest. Lower energy now is biology, not laziness.'],
+    ['Movement', 'You aren’t weaker this week. Studies find strength changes across the cycle are small for most women. Go by feel.'],
+    ['Comfort', 'Gentle movement and warmth often ease cramps by improving blood flow.'],
+    ['Food', 'Iron lost through bleeding can add fatigue. Leafy greens, beans or red meat help, with vitamin C to absorb it.'],
+    ['Sleep', 'Sleep can be lighter around your period. An earlier night is a smart training choice.'],
+    ['Movement', 'Mobility and yoga days fit beautifully here. Lift if you feel good.'],
+    ['Mind', 'Many women feel more inward right now. Quiet time can feel especially restoring.'],
+  ], grace: [
+    'Rest is not falling behind. It is part of how God made you.',
+    'Showing up gently still counts as showing up.',
+    'Come unto me, all ye that labour and are heavy laden, and I will give you rest.',
+    'He restoreth my soul.',
+    'You don’t have to earn rest.',
+  ] },
+  follicular: { name: 'Follicular', icon: 'sprout', tips: [
+    ['Your body', 'Estrogen is rising. Many women notice energy and mood lifting this week.'],
+    ['Movement', 'A great week to add a rep or a little weight on Resistance days.'],
+    ['Recovery', 'Recovery often feels quicker now, so soreness may fade sooner.'],
+    ['Mind', 'Motivation tends to climb. A good week to try a move from your saved inspiration.'],
+    ['Food', 'Steady meals with protein help you make the most of the extra energy.'],
+    ['Movement', 'Hips + Core days are a nice place to focus on slow, controlled form.'],
+    ['Your body', 'Rising estrogen supports bone and muscle. Your training is building something lasting.'],
+    ['Mind', 'Notice which workouts you actually enjoy. Joy keeps habits going.'],
+  ], grace: [
+    'His compassions are new every morning, and so is this season.',
+    'Strength and honour are her clothing.',
+    'Enjoy the energy as a gift, not a new standard.',
+    'Whatsoever ye do, do it heartily, as to the Lord.',
+    'Let today be a celebration, not a test.',
+  ] },
+  ovulation: { name: 'Ovulation', icon: 'flower', tips: [
+    ['Your body', 'Estrogen peaks and a surge of LH releases an egg. Your body is working as designed.'],
+    ['Movement', 'Some studies link this window to looser ligaments. Warm up hips and knees well.'],
+    ['Movement', 'Many women feel strongest now. Enjoy your favorite strength moves with good form.'],
+    ['You might notice', 'A brief twinge on one side is common around ovulation.'],
+  ], grace: [
+    'I will praise thee; for I am fearfully and wonderfully made.',
+    'Your body is not a project. It is a gift you care for.',
+    'Celebrate what your body can do today.',
+  ] },
+  luteal: { name: 'Luteal', icon: 'leaf', tips: [
+    ['Your body', 'Progesterone warms your body slightly and nudges resting heart rate up. The same workout can honestly feel harder.'],
+    ['Food', 'Your body burns a little more energy now, so hunger can rise. That’s real, not a lack of willpower.'],
+    ['Movement', 'Steady, moderate effort is a great fit. Consistency beats intensity.'],
+    ['Hydration', 'Higher body temperature means water matters more. Keep a glass close.'],
+    ['Sleep', 'Sleep can get lighter. A cooler room and a wind-down routine help.'],
+    ['You might notice', 'Water retention can push the scale up 1–2 lb or more late in this phase. It’s fluid, not fat, and it passes.'],
+    ['Mind', 'As hormones drop before your period, mood can dip. It’s chemistry, not a verdict on you.'],
+    ['You might notice', 'Bloating and cravings are common in the last few days. Gentle walks and fiber can help.'],
+    ['Movement', 'If a lighter day is what you need, take it and still check it off.'],
+    ['Food', 'Protein and complex carbs can steady energy and cravings.'],
+    ['Movement', 'Mobility days feel especially good when you’re puffy or achy.'],
+  ], grace: [
+    'My grace is sufficient for thee: for my strength is made perfect in weakness.',
+    'How you feel this week is not a measure of your worth.',
+    'Be as kind to yourself as you would be to a friend.',
+    'Casting all your care upon him; for he careth for you.',
+    'Faithful in small things is still faithful.',
+    'Let us not be weary in well doing.',
+  ] },
+};
 function cycleInfo(d) {
   const starts = ((S.cycle || {}).starts || []).filter(s => s <= d).sort();
   if (!starts.length) return null;
   const last = starts[starts.length - 1];
   const day = Math.round((parse(d) - parse(last)) / 864e5) + 1;
   const len = cycleLen();
-  if (day > len + 14) return { day, phase: 'Unknown', tip: 'Log your next period start for fresh tips.', emoji: '🌙' };
-  if (day <= 5) return { day, phase: 'Menstrual', emoji: '🌙', tip: 'Go gently. Walks, yoga and mobility are perfect. Rest is part of the plan.' };
-  if (day <= 13) return { day, phase: 'Follicular', emoji: '🌱', tip: 'Energy is rising. A lovely week to lean into resistance work.' };
-  if (day <= 16) return { day, phase: 'Ovulation', emoji: '🌸', tip: 'Often your strongest days. Warm up your hips well and enjoy it.' };
-  return { day, phase: 'Luteal', emoji: '🍂', tip: 'Steady and kind. Moderate effort, extra water and sleep, and grace for cravings.' };
+  if (day > len + 14) return { day, stale: true };
+  const ovu = Math.max(10, len - 14); // ovulation is roughly 14 days before the next period
+  const key = day <= 5 ? 'menstrual' : day < ovu - 1 ? 'follicular' : day <= ovu + 1 ? 'ovulation' : 'luteal';
+  const phaseStart = key === 'menstrual' ? 1 : key === 'follicular' ? 6 : key === 'ovulation' ? ovu - 1 : ovu + 2;
+  const k = day - phaseStart; const cyc = starts.length; const P = PHASES[key];
+  const t = P.tips[(k + cyc * 3) % P.tips.length];
+  const more = [1, 2].map(o => P.tips[(k + cyc * 3 + o) % P.tips.length]);
+  return { day, key, phase: P.name, icon: P.icon, tip: t, more, grace: P.grace[(k + cyc * 2) % P.grace.length], next: len - day + 1 };
 }
 function cycleLen() {
   const st = ((S.cycle || {}).starts || []).slice().sort(); const gaps = [];
@@ -450,9 +550,13 @@ function cycleLen() {
 function cycleCard(d) {
   if (!S.settings.cycle) return '';
   const c = cycleInfo(d);
-  if (!c) return `<div class="card rows" style="margin-top:10px"><button class="r" data-act="period" data-d="${d}"><span style="font-size:22px">🌙</span><span class="l">Cycle-aware tips<small>Tap the day your period starts</small></span>${CHEV}</button></div>`;
-  return `<div class="card rows" style="margin-top:10px"><div class="r" style="align-items:flex-start;padding-top:12px;padding-bottom:12px"><span style="font-size:22px">${c.emoji}</span><span class="l"><b style="font-weight:600">${c.phase} · day ${c.day}</b><small>${esc(c.tip)}</small></span>
-    <button class="btn quiet" data-act="period" data-d="${d}" style="min-height:36px;font-size:14px">Period started</button></div></div>`;
+  if (!c || c.stale) return `<div class="card rows" style="margin-top:10px"><button class="r" data-act="period" data-d="${d}"><span class="e">${ic('moon')}</span><span class="l">${c ? 'Log your next period start' : 'Cycle insights'}<small>Tap on the day your period starts</small></span>${CHEV}</button></div>`;
+  return `<div class="card cycle" style="margin-top:10px">
+    <div class="cy-h"><span class="e">${ic(c.icon)}</span><span class="l"><b>${c.phase} · day ${c.day}</b>${c.next > 0 && c.next < 8 ? `<small>Period expected in about ${c.next} day${c.next > 1 ? 's' : ''}</small>` : ''}</span>
+    <button class="btn quiet" data-act="period" data-d="${d}" style="min-height:36px;font-size:14px">Period started</button></div>
+    <div class="cy-tip"><span>${esc(c.tip[0])}</span>${esc(c.tip[1])}</div>
+    <div class="cy-grace">${esc(c.grace)}</div>
+    <details class="cy-more"><summary>More for this phase</summary>${c.more.map(t => `<div class="cy-tip"><span>${esc(t[0])}</span>${esc(t[1])}</div>`).join('')}</details></div>`;
 }
 function weekStrip(sel) {
   const ws = weekStart(sel); const today = todayStr(); let h = '<div class="weekstrip" role="group" aria-label="This week">';
@@ -467,7 +571,7 @@ function sessionCard(d, id) {
   const r = S.routines[id]; const pr = routineProgress(d, id); const done = (dayLog(d).done || {})[id] || {};
   const open = openCards.has(d + id) || (!pr.full && !openCards.has('closed' + d + id) && firstOpen(d) === id);
   let h = `<div class="card ${open ? 'open' : ''}" data-card="${id}" style="margin-top:12px">
-    <button class="sess-h" data-act="toggle" data-id="${id}" data-d="${d}" aria-expanded="${open}"><span class="emo">${r.emoji}</span>
+    <button class="sess-h" data-act="toggle" data-id="${id}" data-d="${d}" aria-expanded="${open}"><span class="emo">${ic(r.emoji)}</span>
     <span class="t"><b>${esc(r.name)}</b><small>${pr.full ? 'Done · ' + esc(pick(CHEERS, d + id)) : pr.k + ' of ' + pr.n}</small></span>${CHEV}</button>
     <div class="minibar"><i style="width:${pr.n ? pr.k / pr.n * 100 : 0}%"></i></div><div class="sess-body">`;
   if (r.note) h += `<div class="note" style="padding:8px 16px 4px">${esc(r.note)}</div>`;
@@ -489,15 +593,15 @@ function renderPlan(v) {
   let h = '<div class="h2" style="margin-top:8px">Week</div><div class="card rows">';
   ORDER.forEach(dw => {
     const ids = (S.week[dw] || []).filter(id => S.routines[id]);
-    h += `<button class="r" data-act="editday" data-dw="${dw}"><span class="l"><b style="font-weight:600">${DAYS_LONG[dw]}</b><small>${ids.length ? ids.map(id => S.routines[id].emoji + ' ' + esc(S.routines[id].name)).join('  ·  ') : 'Rest'}</small></span>${CHEV}</button>`;
+    h += `<button class="r" data-act="editday" data-dw="${dw}"><span class="l"><b style="font-weight:600">${DAYS_LONG[dw]}</b><small>${ids.length ? ids.map(id => esc(S.routines[id].name)).join(' · ') : 'Rest'}</small></span>${CHEV}</button>`;
   });
   h += '</div><div class="h2">Workouts</div><div class="card rows">';
   Object.keys(S.routines).forEach(id => {
     const r = S.routines[id]; const days = ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]);
-    h += `<a class="r" href="#plan/r/${id}" data-push><span style="font-size:24px">${r.emoji}</span><span class="l">${esc(r.name)}<small>${r.items.length} moves${days.length ? ' · ' + days.join(', ') : ''}${r.refs.length ? ' · ' + r.refs.length + ' saved' : ''}</small></span>${CHEV}</a>`;
+    h += `<a class="r" href="#plan/r/${id}" data-push><span class="e">${ic(r.emoji)}</span><span class="l">${esc(r.name)}<small>${r.items.length} moves${days.length ? ' · ' + days.join(', ') : ''}${r.refs.length ? ' · ' + r.refs.length + ' saved' : ''}</small></span>${CHEV}</a>`;
   });
   h += '</div><div class="h2">Habits</div><div class="card rows">';
-  S.habits.forEach(hb => { h += `<button class="r" data-act="edithabit" data-id="${hb.id}"><span style="font-size:22px">${hb.emoji}</span><span class="l">${esc(hb.name)}</span><span class="v">${hb.target > 1 ? hb.target + ' ' + esc(hb.unit || '') : 'Daily'}</span>${CHEV}</button>`; });
+  S.habits.forEach(hb => { h += `<button class="r" data-act="edithabit" data-id="${hb.id}"><span class="e">${ic(hb.emoji)}</span><span class="l">${esc(hb.name)}</span><span class="v">${hb.target > 1 ? hb.target + ' ' + esc(hb.unit || '') : 'Daily'}</span>${CHEV}</button>`; });
   h += `<button class="r" data-act="edithabit"><span class="l" style="color:var(--rose);font-weight:600">＋ Add habit</span></button></div>`;
   v.innerHTML = h;
 }
@@ -505,7 +609,7 @@ function renderRoutine(v, id) {
   const r = S.routines[id];
   header(r.name, backBtn('Plan', 'plan'), `<button class="tb-btn" data-act="editroutine" data-id="${id}" aria-label="Edit">${ICON.pencil}</button>`);
   let h = `<div class="hero"><div class="eyebrow">${ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]).join(' · ') || 'Not scheduled'}</div>
-    <div class="big">${r.emoji} ${r.items.length} moves</div>${r.note ? `<div class="sub">${esc(r.note)}</div>` : ''}</div>`;
+    <div class="big">${r.items.length} moves</div>${r.note ? `<div class="sub">${esc(r.note)}</div>` : ''}</div>`;
   h += '<div class="card">';
   r.items.forEach((it, i) => {
     h += `<div class="edit-ex" style="${i === 0 ? 'border-top:0' : ''}"><input class="field f-name" value="${esc(it.name)}" data-edit="name" data-id="${id}" data-item="${it.id}" aria-label="Move name" enterkeyhint="done">
@@ -563,12 +667,12 @@ function renderProgress(v) {
   h += `<div class="chips-range" role="radiogroup" aria-label="Range">${[[8, '8W'], [12, '12W'], [26, '6M'], [52, '1Y']].map(([n, l]) => `<button role="radio" aria-checked="${range === n}" data-act="range" data-n="${n}">${l}</button>`).join('')}</div></div>`;
 
   // milestones
-  const ms = [[1, 'First workout', '🌱'], [5, '5 workouts', '🌷'], [10, '10 workouts', '🌸'], [25, '25 workouts', '💐'], [50, '50 workouts', '🏵️'], [100, '100 workouts', '👑']];
+  const ms = [[1, 'First workout', '1'], [5, 'Workouts', '5'], [10, 'Workouts', '10'], [25, 'Workouts', '25'], [50, 'Workouts', '50'], [100, 'Workouts', '100']];
   const best = bestStreak();
-  const ss = [[3, '3-day streak', '✨'], [7, '7-day streak', '💗'], [21, '21-day streak', '🔥'], [40, '40 faithful days', '🕊️']];
+  const ss = [[3, 'Day streak', '3'], [7, 'Day streak', '7'], [21, 'Day streak', '21'], [40, 'Faithful days', '40']];
   h += '<div class="h2">Milestones</div><div class="card" style="padding:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;text-align:center">';
   ms.map(([n, l, e]) => [total >= n, l, e]).concat(ss.map(([n, l, e]) => [best >= n, l, e])).forEach(([got, l, e]) => {
-    h += `<div style="opacity:${got ? 1 : .35}"><div style="font-size:28px;filter:${got ? 'none' : 'grayscale(1)'}">${e}</div><div style="font-size:11px;font-weight:600;color:var(--muted);line-height:1.2">${esc(l)}</div></div>`;
+    h += `<div style="opacity:${got ? 1 : .45}"><div class="badge ${got ? 'got' : ''}">${e}</div><div style="font-size:11px;font-weight:600;color:var(--muted);line-height:1.2">${esc(l)}</div></div>`;
   });
   h += '</div>';
 
@@ -576,7 +680,7 @@ function renderProgress(v) {
   const wins = Object.keys(S.log).filter(d => S.log[d].m && (S.log[d].m.win || S.log[d].m.grateful)).sort().reverse().slice(0, 10);
   h += '<div class="h2">Wins &amp; gratitude</div><div class="card rows">';
   if (!wins.length) h += '<div class="empty"><b>No wins written yet.</b><span class="muted">Tap ＋ on Today to note one. Small ones count.</span></div>';
-  wins.forEach(d => { const m = S.log[d].m; h += `<a class="r" href="#today?d=${d}" data-push><span class="l">${esc(m.win || m.grateful)}<small>${short(d)}${m.win && m.grateful ? ' · Grateful for ' + esc(m.grateful) : ''}</small></span>${m.mood ? '<span style="font-size:20px">' + m.mood + '</span>' : ''}</a>`; });
+  wins.forEach(d => { const m = S.log[d].m; h += `<a class="r" href="#today?d=${d}" data-push><span class="l">${esc(m.win || m.grateful)}<small>${short(d)}${m.win && m.grateful ? ' · Grateful for ' + esc(m.grateful) : ''}</small></span>${moodIdx(m.mood) >= 0 ? '<span class="e">' + face(moodIdx(m.mood)) + '</span>' : ''}</a>`; });
   h += '</div>';
   v.innerHTML = h;
 }
@@ -600,7 +704,7 @@ function renderMore(v) {
   const perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
   v.innerHTML = `<div class="h2" style="margin-top:8px">Stay on track</div><div class="card rows">
     <a class="r" href="#more/reminders" data-push><span class="l">Reminders</span><span class="v">${esc(fmtTime(S.settings.remindTime))}</span>${CHEV}</a>
-    <div class="frow"><label>Cycle-aware tips<small>Gentle suggestions by phase</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.cycle}" data-act="togglecycle" aria-label="Cycle-aware tips"></button></div></div>
+    <div class="frow"><label>Cycle insights<small>What each phase does, with grace. Postpartum and breastfeeding cycles can be irregular, so days are estimates.</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.cycle}" data-act="togglecycle" aria-label="Cycle insights"></button></div></div>
   <div class="h2">You</div><div class="card">
     <div class="frow"><label for="nm">Name</label><input id="nm" class="field" value="${esc(S.settings.name)}" data-setting="name" enterkeyhint="done"></div>
     <div class="frow"><label>Daily verse<small>Scripture on Today</small></label><button class="switch" role="switch" aria-checked="${S.settings.verse}" data-act="toggleverse" aria-label="Daily verse"></button></div>
@@ -640,10 +744,9 @@ function renderBackup(v) {
 }
 
 // ---------- Log sheet ----------
-const MOODS = ['😔', '😐', '🙂', '😊', '🥰'];
 function openLog(d) {
   const m = Object.assign({}, dayLog(d).m || {});
-  const body = `<div class="h2" style="margin-top:4px">How are you feeling?</div><div class="mood">${MOODS.map(e => `<button aria-pressed="${m.mood === e}" data-mood="${e}">${e}</button>`).join('')}</div>
+  const body = `<div class="h2" style="margin-top:4px">How are you feeling?</div><div class="mood">${FACES.map((f, i) => `<button aria-pressed="${moodIdx(m.mood) === i}" data-mood="${i}" aria-label="${MOOD_LABELS[i]}">${face(i)}</button>`).join('')}</div>
     <div class="h2">Wins</div>
     <div class="frow"><input class="field wide" data-k="win" value="${esc(m.win || '')}" placeholder="One win today, big or small" enterkeyhint="next"></div>
     <div class="frow"><input class="field wide" data-k="grateful" value="${esc(m.grateful || '')}" placeholder="I’m grateful for…" enterkeyhint="done"></div>
@@ -687,10 +790,10 @@ function buildIcs() {
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(summary), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
   };
   Object.keys(groups).forEach(k => {
-    const names = k.split('+').map(id => S.routines[id].emoji + ' ' + S.routines[id].name).join(' + ');
+    const names = k.split('+').map(id => S.routines[id].name).join(' + ');
     ev(k.replace(/\+/g, '-'), names, 'Healthy Hannah. ' + pick(AFFIRM, k), groups[k], S.settings.remindTime, 45);
   });
-  ev('checkin', '🌸 Evening check-in', 'Habits, a win, and something you’re grateful for.', [0, 1, 2, 3, 4, 5, 6], S.settings.checkinTime, 10);
+  ev('checkin', 'Evening check-in', 'Habits, a win, and something you’re grateful for.', [0, 1, 2, 3, 4, 5, 6], S.settings.checkinTime, 10);
   lines.push('END:VCALENDAR');
   return lines.join('\r\n');
 }
@@ -731,7 +834,7 @@ function resizeImage(file) {
 function openRefs(id) {
   const r = S.routines[id];
   const wrap = document.createElement('div'); wrap.innerHTML = '<div style="padding:0 16px">' + refsHtml(id) + '</div>';
-  const s = openSheet({ title: r.emoji + ' Inspiration', body: wrap, plain: true });
+  const s = openSheet({ title: r.name, body: wrap, plain: true });
   hydrateImages(wrap);
   refsSheet = { id, s, wrap };
 }
@@ -785,7 +888,7 @@ const actions = {
   extra(el) {
     const d = el.dataset.d; const ids = Object.keys(S.routines).filter(id => !routinesFor(d).includes(id));
     if (!ids.length) { toast('Every workout is already on today.'); return; }
-    const s = openSheet({ title: 'Add a workout', plain: true, body: '<div class="rows">' + ids.map(id => `<button class="r" data-pickr="${id}"><span style="font-size:24px">${S.routines[id].emoji}</span><span class="l">${esc(S.routines[id].name)}</span></button>`).join('') + '</div>' });
+    const s = openSheet({ title: 'Add a workout', plain: true, body: '<div class="rows">' + ids.map(id => `<button class="r" data-pickr="${id}"><span class="e">${ic(S.routines[id].emoji)}</span><span class="l">${esc(S.routines[id].name)}</span></button>`).join('') + '</div>' });
     s.el.addEventListener('click', e => { const b = e.target.closest('[data-pickr]'); if (!b) return; const L = dayLog(d, true); L.done[b.dataset.pickr] = L.done[b.dataset.pickr] || {}; openCards.add(d + b.dataset.pickr); save(); s.close(); rerender(); });
   },
   habit(el) {
@@ -793,14 +896,14 @@ const actions = {
     const c = L.habits[id] || 0;
     if (c >= hb.target) { const snap = snapshot(); L.habits[id] = 0; save(); rerender(); toast(hb.name + ' cleared', () => restore(snap)); return; }
     L.habits[id] = c + 1; haptic(); save(); rerender();
-    if (L.habits[id] >= hb.target) toast(hb.emoji + ' ' + hb.name + ' done. ' + pick(CHEERS, d + id));
+    if (L.habits[id] >= hb.target) toast(hb.name + ' done. ' + pick(CHEERS, d + id));
   },
   refs(el) { openRefs(el.dataset.id); },
   bar(el) { const i = Number(el.dataset.i); picked = picked === i ? -1 : i; rerender(); },
   range(el) { range = Number(el.dataset.n); picked = -1; rerender(); },
   editday(el) {
     const dw = Number(el.dataset.dw); const sel = new Set(S.week[dw] || []);
-    const body = '<div class="rows">' + Object.keys(S.routines).map(id => `<button class="r" data-pickd="${id}" role="checkbox" aria-checked="${sel.has(id)}"><span style="font-size:24px">${S.routines[id].emoji}</span><span class="l">${esc(S.routines[id].name)}</span><span class="check ${sel.has(id) ? '' : ''}"><i style="${sel.has(id) ? 'background:var(--rose);border-color:var(--rose)' : ''}">${sel.has(id) ? CHECK.replace('<svg', '<svg style="opacity:1"') : ''}</i></span></button>`).join('') + '</div><p>Leave all off for a rest day.</p>';
+    const body = '<div class="rows">' + Object.keys(S.routines).map(id => `<button class="r" data-pickd="${id}" role="checkbox" aria-checked="${sel.has(id)}"><span class="e">${ic(S.routines[id].emoji)}</span><span class="l">${esc(S.routines[id].name)}</span><span class="check ${sel.has(id) ? '' : ''}"><i style="${sel.has(id) ? 'background:var(--rose);border-color:var(--rose)' : ''}">${sel.has(id) ? CHECK.replace('<svg', '<svg style="opacity:1"') : ''}</i></span></button>`).join('') + '</div><p>Leave all off for a rest day.</p>';
     const s = openSheet({ title: DAYS_LONG[dw], body, save: () => { S.week[dw] = Object.keys(S.routines).filter(id => sel.has(id)); save(); rerender(); toast(DAYS_LONG[dw] + ' updated'); } });
     s.el.addEventListener('click', e => {
       const b = e.target.closest('[data-pickd]'); if (!b) return; const id = b.dataset.pickd;
@@ -851,8 +954,8 @@ const actions = {
     hydrateImages(s.el); s.el.addEventListener('click', e => { if (e.target.closest('[data-act="delref"]')) s.close(); });
   },
   edithabit(el) {
-    const id = el.dataset.id; const hb = id ? S.habits.find(h => h.id === id) : { name: '', emoji: '✨', target: 1, unit: '' };
-    const body = `<div class="card" style="margin:0 16px"><div class="frow"><label>Emoji</label><input class="field" data-f="emoji" value="${esc(hb.emoji)}" style="width:70px;text-align:center"></div>
+    const id = el.dataset.id; const hb = id ? S.habits.find(h => h.id === id) : { name: '', emoji: 'spark', target: 1, unit: '' };
+    const body = `<div class="card" style="margin:0 16px">${iconPicker(hb.emoji)}
       <div class="frow"><label>Name</label><input class="field" data-f="name" value="${esc(hb.name)}" style="width:180px" placeholder="Stretch"></div>
       <div class="frow"><label>Times a day<small>1 = simple check</small></label><input class="field" data-f="target" inputmode="numeric" value="${hb.target}" style="width:70px;text-align:center"></div>
       <div class="frow"><label>Unit</label><input class="field" data-f="unit" value="${esc(hb.unit || '')}" style="width:120px" placeholder="glasses"></div></div>
@@ -862,7 +965,7 @@ const actions = {
       save: b => {
         const g = f => b.querySelector(`[data-f="${f}"]`).value.trim();
         if (!g('name')) { b.querySelector('[data-f="name"]').classList.add('invalid'); return false; }
-        const next = { id: id || uid(), name: g('name').slice(0, 40), emoji: (g('emoji') || '✨').slice(0, 4), target: Math.max(1, Math.min(50, parseInt(g('target'), 10) || 1)), unit: g('unit').slice(0, 20) };
+        const next = { id: id || uid(), name: g('name').slice(0, 40), emoji: pickedIcon(b), target: Math.max(1, Math.min(50, parseInt(g('target'), 10) || 1)), unit: g('unit').slice(0, 20) };
         if (id) Object.assign(hb, next); else S.habits.push(next); save(); rerender();
       },
     });
@@ -887,9 +990,13 @@ const actions = {
     });
   },
 };
+function iconPicker(cur) {
+  return `<div class="frow" style="display:block"><label style="display:block;margin-bottom:8px">Icon</label><div class="icon-pick" role="radiogroup" aria-label="Icon">${ICON_KEYS.map(k => `<button type="button" role="radio" aria-checked="${icKey(cur) === k}" data-icon="${k}" aria-label="${k}">${ic(k)}</button>`).join('')}</div></div>`;
+}
+function pickedIcon(b) { const x = b.querySelector('[data-icon][aria-checked="true"]'); return x ? x.dataset.icon : 'spark'; }
 function routineForm(id) {
-  const r = id ? S.routines[id] : { name: '', emoji: '💪', note: '' };
-  const body = `<div class="card" style="margin:0 16px"><div class="frow"><label>Emoji</label><input class="field" data-f="emoji" value="${esc(r.emoji)}" style="width:70px;text-align:center"></div>
+  const r = id ? S.routines[id] : { name: '', emoji: 'dumbbell', note: '' };
+  const body = `<div class="card" style="margin:0 16px">${iconPicker(r.emoji)}
     <div class="frow"><label>Name</label><input class="field" data-f="name" value="${esc(r.name)}" style="width:190px" placeholder="Glutes"></div>
     <div class="frow" style="display:block"><label style="display:block;margin-bottom:6px">Note</label><textarea class="field" data-f="note" rows="2" placeholder="Form cues, how you like to do it">${esc(r.note)}</textarea></div></div>`;
   openSheet({
@@ -897,8 +1004,8 @@ function routineForm(id) {
     save: b => {
       const g = f => b.querySelector(`[data-f="${f}"]`).value.trim();
       if (!g('name')) { b.querySelector('[data-f="name"]').classList.add('invalid'); return false; }
-      if (id) Object.assign(r, { name: g('name').slice(0, 40), emoji: (g('emoji') || '💪').slice(0, 4), note: g('note').slice(0, 300) });
-      else { const nid = 'r' + uid(); S.routines[nid] = { name: g('name').slice(0, 40), emoji: (g('emoji') || '💪').slice(0, 4), note: g('note').slice(0, 300), items: [ex('First move', '10')], refs: [] }; save(); go('plan/r/' + nid); return; }
+      if (id) Object.assign(r, { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300) });
+      else { const nid = 'r' + uid(); S.routines[nid] = { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300), items: [ex('First move', '10')], refs: [] }; save(); go('plan/r/' + nid); return; }
       save(); rerender();
     },
   });
@@ -906,6 +1013,8 @@ function routineForm(id) {
 
 // ---------- Global handlers ----------
 document.addEventListener('click', e => {
+  const pk = e.target.closest('[data-icon]');
+  if (pk) { pk.parentNode.querySelectorAll('[data-icon]').forEach(x => x.setAttribute('aria-checked', 'false')); pk.setAttribute('aria-checked', 'true'); return; }
   const a = e.target.closest('[data-act]');
   if (a && !a.disabled) { e.preventDefault(); const fn = actions[a.dataset.act]; fn && fn(a, e); return; }
   const tab = e.target.closest('#tabbar a');
@@ -985,7 +1094,7 @@ function applyTheme() {
   const t = S.settings.theme; const d = document.documentElement;
   if (t === 'auto') d.removeAttribute('data-theme'); else d.setAttribute('data-theme', t);
   const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  $('meta[name="theme-color"]').setAttribute('content', dark ? '#1F1816' : '#FAF0EC');
+  $('meta[name="theme-color"]').setAttribute('content', dark ? '#1F1816' : '#FFFFFF');
 }
 // day rollover + foreground refresh
 let lastDay = todayStr();

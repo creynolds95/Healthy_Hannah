@@ -1,5 +1,5 @@
 // Healthy Hannah service worker: precache the shell, serve offline, update in the background.
-const CACHE = 'hh-v1.1.2';
+const CACHE = 'hh-v1.3.0';
 const SHELL = ['./', 'index.html', 'styles.css', 'boot.js', 'app.js', 'manifest.webmanifest', 'icons/logo.svg', 'icons/mark.svg', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'fonts/jost-latin.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => {
