@@ -1,0 +1,16 @@
+{
+  "name": "healthy-hannah",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.6.0",
+    "zod": "4.1.12"
+  },
+  "devDependencies": {
+    "wrangler": "4.158.0"
+  }
+}

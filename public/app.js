@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '1.3.0';
+const VERSION = '2.0.0';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -165,7 +165,7 @@ function seed() {
       { id: 'prayer', name: 'Quiet time', emoji: 'book', target: 1 },
     ],
     log: {},
-    settings: { name: 'Hannah', theme: 'auto', verse: true, cycle: false, remindTime: '08:00', checkinTime: '20:00', badge: false },
+    settings: { name: 'Hannah', theme: 'auto', verse: true, cycle: false, assists: true, pushWorkout: true, pushCheckin: true, remindTime: '08:00', checkinTime: '20:00', badge: false },
   };
 }
 
@@ -176,12 +176,24 @@ function load() {
   if (!S || !S.routines) S = seed();
   S.settings = Object.assign(seed().settings, S.settings || {});
   S.log = S.log || {};
-  Object.values(S.routines).forEach(r => { r.emoji = icKey(r.emoji); });
+  normalize();
+  lastCfg = cfgString();
+}
+function normalize() {
+  S.settings = Object.assign(seed().settings, S.settings || {});
+  S.log = S.log || {}; S.week = S.week || {}; S.habits = S.habits || [];
+  Object.values(S.routines).forEach(r => { r.emoji = icKey(r.emoji); r.items = r.items || []; r.refs = r.refs || []; });
   S.habits.forEach(h => { h.emoji = icKey(h.emoji); });
 }
-function save() {
+let lastCfg = '';
+const cfgString = () => JSON.stringify([S.routines, S.week, S.habits, S.settings, S.cycle || null]);
+function localSave() {
   try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { toast('Couldn’t save on this device. Storage may be full.'); }
-  updateBadge();
+}
+function save() {
+  const cfg = cfgString(); if (cfg !== lastCfg) { S.cfgAt = Date.now(); lastCfg = cfg; }
+  localSave(); updateBadge();
+  if (typeof cloudOn === 'function' && cloudOn()) { cloud.dirty = true; saveCloud(); scheduleSync(); }
 }
 
 // Images in IndexedDB
@@ -431,8 +443,9 @@ function renderToday(v) {
     <div class="ring" role="img" aria-label="${pct}% done"><svg viewBox="0 0 84 84"><circle class="bg" cx="42" cy="42" r="37"/><circle class="fg" cx="42" cy="42" r="37" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - p.pct)}"/></svg><div class="pct">${p.rest && !p.extraFull ? ic('leaf', 'lg') : pct + '%'}</div></div>
     <div><div class="hero" style="padding:0"><div class="eyebrow">${esc(greet)}${isToday ? ', ' + esc(S.settings.name) : ''}</div>
     <div class="big" style="font-size:24px">${p.rest && !p.extraFull ? 'Rest day' : p.pct >= 1 ? 'All done' : p.k ? `${p.n - p.k} to go` : planFor(d).map(id => S.routines[id].name).join(' + ')}</div>
-    <div class="sub" style="font-size:14px">${esc(aff)}</div></div></div></div>`;
+    <div class="sub" style="font-size:14px" id="affLine">${esc(isToday && assistsOn() && cloud.enc && cloud.enc.date === d ? cloud.enc.line : aff)}</div></div></div></div>`;
   html += weekStrip(d);
+  setTimeout(() => loadEncouragement(d), 0);
   if (S.settings.verse) html += `<div class="verse"><q>${esc(vt)}</q><cite>${esc(vr)}</cite></div>`;
   html += cycleCard(d);
   if (missedYesterday) html +=`<div class="note">${esc(MISSED)}</div>`;
@@ -579,7 +592,7 @@ function sessionCard(d, id) {
     h += `<button class="ex ${done[it.id] ? 'done' : ''}" data-act="check" data-id="${id}" data-item="${it.id}" data-d="${d}" role="checkbox" aria-checked="${!!done[it.id]}">
       <span class="name">${esc(it.name)}${it.note ? '<small>' + esc(it.note) + '</small>' : ''}</span><span class="reps">${esc(it.reps)}</span><span class="check"><i>${CHECK}</i></span></button>`;
   });
-  h += `<div class="sess-foot"><button class="btn quiet" data-act="refs" data-id="${id}">Inspiration (${r.refs.length})</button>
+  h += `<div class="sess-foot"><span class="row-gap" style="gap:0"><button class="btn quiet" data-act="refs" data-id="${id}">Inspiration (${r.refs.length})</button>${assistsOn() && r.items.length ? `<button class="btn quiet" data-act="swap" data-id="${id}">Swap a move</button>` : ''}</span>
     ${pr.full ? `<button class="btn quiet" data-act="clearsess" data-id="${id}" data-d="${d}">Reset</button>` : `<button class="btn soft" data-act="allsess" data-id="${id}" data-d="${d}">Mark all done</button>`}</div></div></div>`;
   return h;
 }
@@ -635,7 +648,7 @@ function refsHtml(id) {
     h += `<div class="link-row"><a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.title || x.url)}</a><button class="icon-btn" data-act="delref" data-id="${id}" data-ref="${x.id}" aria-label="Remove link">${ICON.trash}</button></div>`;
   });
   if (!r.refs.length) h += '<p class="note" style="padding:12px 16px">Save screenshots or links of workouts you love.</p>';
-  h += `<div class="link-row" style="gap:4px"><label class="btn quiet" style="cursor:pointer">＋ Photo<input type="file" accept="image/*" multiple hidden data-addimg="${id}"></label><button class="btn quiet" data-act="addlink" data-id="${id}">＋ Link</button></div></div>`;
+  h += `<div class="link-row" style="gap:4px"><label class="btn quiet" style="cursor:pointer">＋ Photo<input type="file" accept="image/*" multiple hidden data-addimg="${id}"></label><button class="btn quiet" data-act="addlink" data-id="${id}">＋ Link</button></div>${assistsOn() ? `<div class="link-row"><label class="btn quiet" style="cursor:pointer">＋ Moves from a screenshot<input type="file" accept="image/*" hidden data-aimoves="${id}"></label></div>` : ''}</div>`;
   return h;
 }
 function hydrateImages(root) {
@@ -652,6 +665,7 @@ function renderProgress(v) {
   let wPlanned = 0, wDone = 0;
   for (let i = 0; i < 7; i++) { const d = addDays(ws, i); planFor(d).forEach(id => { wPlanned++; if (routineProgress(d, id).full) wDone++; }); }
   const st = streak(); const total = totalSessions();
+  setTimeout(loadReflection, 0);
   let h = `<div class="hero"><div class="eyebrow">This week</div><div class="big">${wDone} of ${wPlanned} workouts</div><div class="sub">${esc(wDone >= wPlanned && wPlanned ? 'A faithful week. Well done.' : wDone ? 'Every one counts. Keep going gently.' : 'A fresh week. One step at a time.')}</div></div>
   <div class="stats"><div class="stat"><b>${st}</b><span>Day streak</span></div><div class="stat"><b>${showed}</b><span>Days showed up this month</span></div><div class="stat"><b>${total}</b><span>Workouts all time</span></div></div>`;
 
@@ -666,6 +680,7 @@ function renderProgress(v) {
   h += '</div><div class="bars-x">' + vals.map((x, i) => `<span>${((vals.length - 1 - i) % Math.ceil(range / 4) === 0) ? short(x.w) : ''}</span>`).join('') + '</div>';
   h += `<div class="chips-range" role="radiogroup" aria-label="Range">${[[8, '8W'], [12, '12W'], [26, '6M'], [52, '1Y']].map(([n, l]) => `<button role="radio" aria-checked="${range === n}" data-act="range" data-n="${n}">${l}</button>`).join('')}</div></div>`;
 
+  h += reflectionCard();
   // milestones
   const ms = [[1, 'First workout', '1'], [5, 'Workouts', '5'], [10, 'Workouts', '10'], [25, 'Workouts', '25'], [50, 'Workouts', '50'], [100, 'Workouts', '100']];
   const best = bestStreak();
@@ -700,10 +715,11 @@ function renderMore(v) {
   const sub = route.path[0];
   if (sub === 'reminders') return renderReminders(v);
   if (sub === 'backup') return renderBackup(v);
+  if (sub === 'sync') return renderSync(v);
   header('More');
   const perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
   v.innerHTML = `<div class="h2" style="margin-top:8px">Stay on track</div><div class="card rows">
-    <a class="r" href="#more/reminders" data-push><span class="l">Reminders</span><span class="v">${esc(fmtTime(S.settings.remindTime))}</span>${CHEV}</a>
+    <a class="r" href="#more/reminders" data-push><span class="l">Reminders</span><span class="v">${esc(fmtTime(S.settings.remindTime))}${cloud.push ? ' · Push' : ''}</span>${CHEV}</a>
     <div class="frow"><label>Cycle insights<small>What each phase does, with grace. Postpartum and breastfeeding cycles can be irregular, so days are estimates.</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.cycle}" data-act="togglecycle" aria-label="Cycle insights"></button></div></div>
   <div class="h2">You</div><div class="card">
     <div class="frow"><label for="nm">Name</label><input id="nm" class="field" value="${esc(S.settings.name)}" data-setting="name" enterkeyhint="done"></div>
@@ -711,7 +727,8 @@ function renderMore(v) {
     <div class="frow" style="display:block"><label style="display:block;margin-bottom:8px">Appearance</label><div class="seg">${['auto', 'light', 'dark'].map(t => `<button aria-pressed="${S.settings.theme === t}" data-act="theme" data-t="${t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('')}</div></div>
   </div>
   <div class="h2">Data</div><div class="card rows">
-    <a class="r" href="#more/backup" data-push><span class="l">Backup &amp; restore<small>Everything is saved on this phone only</small></span>${CHEV}</a>
+    <a class="r" href="#more/sync" data-push><span class="l">Cloud sync<small>Backup, more devices, reminders, assists</small></span><span class="v">${cloudOn() ? 'On' : 'Off'}</span>${CHEV}</a>
+    <a class="r" href="#more/backup" data-push><span class="l">Backup file<small>${cloudOn() ? 'Also backed up to the cloud' : 'Saved on this phone only'}</small></span>${CHEV}</a>
     <div class="r"><span class="l">Version</span><span class="v">${VERSION}</span></div></div>
   <p class="note" style="text-align:center;margin-top:18px">Made with love for Hannah.</p>`;
   void perm;
@@ -725,7 +742,9 @@ function renderReminders(v) {
     <div class="frow"><label for="rt">Workout reminder<small>On workout days</small></label><input id="rt" type="time" class="field" value="${S.settings.remindTime}" data-setting="remindTime"></div>
     <div class="frow"><label for="ct">Evening check-in<small>Every day: habits, a win, gratitude</small></label><input id="ct" type="time" class="field" value="${S.settings.checkinTime}" data-setting="checkinTime"></div>
   </div>
-  <div class="pad" style="padding:14px 0 0"><button class="btn primary block" data-act="ics">Add reminders to Calendar</button></div>
+  ${cloud.push ? `<p class="note">Push reminders are on. They skip themselves once the day’s workouts or check-in are done. Manage them in Cloud sync.</p>` : cloudOn() ? `<p class="note">Turn on push reminders in <a href="#more/sync" style="color:var(--rose)">Cloud sync</a>. They skip themselves once you’re done.</p>` : ''}
+  <div class="h2">Or use Calendar</div>
+  <div class="pad" style="padding:0"><button class="btn soft block" data-act="ics">Add reminders to Calendar</button></div>
   <p class="note">Adds repeating Calendar events with alerts, named for each day’s plan, so they buzz on her iPhone and Apple Watch even when the app is closed. Tap “Add All” when Calendar opens. Re-add after changing the plan or times.</p>
   <div class="h2">Home screen badge</div><div class="card">
     <div class="frow"><label>Show workouts left<small>${canBadge ? 'Number on the app icon until today is done' : 'Available once installed on the Home Screen'}</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.badge}" data-act="togglebadge" ${canBadge ? '' : 'disabled'} aria-label="Badge"></button></div></div>
@@ -734,6 +753,25 @@ function renderReminders(v) {
     <li>Open <b>Shortcuts</b> → <b>Automation</b> → <b>＋</b> → <b>Time of Day</b>.</li>
     <li>Pick ${esc(fmtTime(S.settings.remindTime))}, Weekly, Mon–Fri, <b>Run Immediately</b>.</li>
     <li>Action: <b>Show Notification</b> “Time to move. ${esc(pick(AFFIRM, 'n'))}”.</li></ol></div>`;
+}
+
+function renderSync(v) {
+  header('Cloud sync', backBtn('More', 'more'));
+  if (!cloudOn()) {
+    v.innerHTML = `<p class="note" style="font-size:15px">Keep everything backed up in your own Cloudflare database, use the app on more than one device, and turn on push reminders and assists.</p>
+    <div class="card"><div class="frow"><label for="syncCode">Sync code<small>The code set up on the server</small></label><input id="syncCode" class="field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:160px" enterkeyhint="go"></div></div>
+    <div class="pad" style="padding:14px 0 0"><button class="btn primary block" data-act="connect">Connect</button></div>`;
+    return;
+  }
+  v.innerHTML = `<div class="card rows"><div class="r"><span class="l">Status<small id="syncStatus" class="${cloud.err ? 'warm' : ''}">${esc(syncStatusText())}</small></span><button class="btn quiet" data-act="syncnow">Sync now</button></div></div>
+  <div class="h2">Push reminders</div><div class="card">
+    <div class="frow"><label>Reminders on this phone<small>${esc(fmtTime(S.settings.remindTime))} workouts · ${esc(fmtTime(S.settings.checkinTime))} check-in. Skipped once done.</small></label><button class="switch" role="switch" aria-checked="${!!cloud.push}" data-act="togglepush" aria-label="Push reminders"></button></div>
+    ${cloud.push ? `<div class="frow"><label>Workout reminder</label><button class="switch" role="switch" aria-checked="${S.settings.pushWorkout !== false}" data-act="pushkind" data-k="pushWorkout" aria-label="Workout reminder"></button></div>
+    <div class="frow"><label>Evening check-in</label><button class="switch" role="switch" aria-checked="${S.settings.pushCheckin !== false}" data-act="pushkind" data-k="pushCheckin" aria-label="Evening check-in"></button></div>
+    <div class="frow"><label>Send a test</label><button class="btn quiet" data-act="pushtest">Send</button></div>` : ''}
+  </div><p class="note">Change the times in More → Reminders.</p>
+  ${cloud.ai ? `<div class="h2">Assists</div><div class="card"><div class="frow"><label>Assists<small>A daily encouragement line, moves from screenshots, swap a move, and a weekly look back</small></label><button class="switch" role="switch" aria-checked="${S.settings.assists !== false}" data-act="toggleassists" aria-label="Assists"></button></div></div>` : ''}
+  <div class="h2">Manage</div><div class="card rows"><button class="r" data-act="disconnect"><span class="l" style="color:#B5533C">Disconnect this phone<small>Stops syncing here. Your data stays on this phone and in the cloud.</small></span></button></div>`;
 }
 function renderBackup(v) {
   header('Backup', backBtn('More', 'more'));
@@ -843,8 +881,270 @@ function refreshRefsSheet() {
   if (refsSheet && document.body.contains(refsSheet.wrap)) { refsSheet.wrap.innerHTML = '<div style="padding:0 16px">' + refsHtml(refsSheet.id) + '</div>'; hydrateImages(refsSheet.wrap); }
 }
 
+
+// ---------- Cloud: sync + backup, push reminders, assists ----------
+const CK = 'hh.cloud';
+let cloud = (() => { try { return JSON.parse(localStorage.getItem(CK)) || {}; } catch (e) { return {}; } })();
+function saveCloud() { try { localStorage.setItem(CK, JSON.stringify(cloud)); } catch (e) {} }
+function cloudOn() { return !!cloud.code; }
+const assistsOn = () => cloudOn() && cloud.ai && S.settings.assists !== false;
+class ApiError extends Error { constructor(m, s) { super(m); this.status = s; } }
+async function apiCall(path, opts) {
+  opts = opts || {};
+  let res;
+  try {
+    res = await fetch('/api/' + path, {
+      method: opts.method || 'GET', cache: 'no-store',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (opts.code || cloud.code || '') },
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    });
+  } catch (e) { throw new ApiError(navigator.onLine === false ? 'You’re offline. Changes are saved on this phone.' : 'Couldn’t reach the server.', 0); }
+  let data = null; try { data = await res.json(); } catch (e) {}
+  if (!res.ok && res.status !== 409) throw new ApiError((data && data.error) || 'Couldn’t reach the server.', res.status);
+  return { status: res.status, data };
+}
+function hasLocalData() { return Object.keys(S.log).length > 0 || (S.cfgAt || 0) > 0; }
+function mergeState(a, b) {
+  const out = JSON.parse(JSON.stringify((a.cfgAt || 0) >= (b.cfgAt || 0) ? a : b));
+  out.log = {};
+  const days = new Set(Object.keys(a.log || {}).concat(Object.keys(b.log || {})));
+  days.forEach(d => {
+    const x = (a.log || {})[d] || {}, y = (b.log || {})[d] || {};
+    const L = { done: {}, habits: {}, m: Object.assign({}, y.m || {}, x.m || {}) };
+    new Set(Object.keys(x.done || {}).concat(Object.keys(y.done || {}))).forEach(id => { L.done[id] = Object.assign({}, (y.done || {})[id], (x.done || {})[id]); });
+    new Set(Object.keys(x.habits || {}).concat(Object.keys(y.habits || {}))).forEach(id => { L.habits[id] = Math.max((x.habits || {})[id] || 0, (y.habits || {})[id] || 0); });
+    out.log[d] = L;
+  });
+  return out;
+}
+const userEditing = () => { const a = document.activeElement; return a && /INPUT|TEXTAREA/.test(a.tagName); };
+function adopt(next) { S = next; normalize(); lastCfg = cfgString(); localSave(); updateBadge(); if (!userEditing() && !document.querySelector('.sheet')) rerender(); }
+let syncing = null, syncTimer;
+function scheduleSync(ms) { clearTimeout(syncTimer); syncTimer = setTimeout(() => { sync(); }, ms == null ? 1500 : ms); }
+function sync() {
+  if (!cloudOn()) return Promise.resolve();
+  if (syncing) return syncing;
+  syncing = (async () => {
+    try {
+      const got = (await apiCall('state')).data;
+      if (got.rev > (cloud.rev || 0) && got.data) {
+        adopt(cloud.dirty ? mergeState(S, got.data) : got.data);
+        cloud.rev = got.rev;
+      }
+      if (cloud.dirty || !got.data) {
+        let put = await apiCall('state', { method: 'PUT', body: { base: cloud.rev || 0, data: S } });
+        if (put.status === 409) {
+          const fresh = (await apiCall('state')).data;
+          adopt(mergeState(S, fresh.data || S)); cloud.rev = fresh.rev;
+          put = await apiCall('state', { method: 'PUT', body: { base: cloud.rev, data: S } });
+          if (put.status === 409) throw new ApiError('Two devices saved at once. Tap Sync now.', 409);
+        }
+        cloud.rev = put.data.rev; cloud.dirty = false;
+      }
+      await syncImages();
+      cloud.last = Date.now(); cloud.err = '';
+    } catch (e) {
+      cloud.err = e.message || 'Couldn’t sync.';
+      if (e.status === 401) cloud.err = 'The sync code no longer matches. Enter it again.';
+    }
+    saveCloud(); syncing = null; refreshSyncStatus();
+  })();
+  return syncing;
+}
+async function syncImages() {
+  const local = await idb.all().catch(() => ({}));
+  const remote = new Set((await apiCall('images')).data.ids);
+  const referenced = new Set();
+  Object.values(S.routines).forEach(r => r.refs.forEach(x => { if (x.kind === 'img') referenced.add(x.id); }));
+  for (const id of referenced) {
+    if (local[id] && !remote.has(id)) await apiCall('images/' + id, { method: 'PUT', body: { data: local[id] } });
+  }
+  let pulled = 0;
+  for (const id of referenced) {
+    if (!local[id] && remote.has(id)) { const g = await apiCall('images/' + id); await idb.set(id, g.data.data); pulled++; }
+  }
+  if (pulled && !userEditing()) rerender();
+}
+function syncStatusText() {
+  if (!cloudOn()) return 'Off';
+  if (syncing) return 'Syncing…';
+  if (cloud.err) return cloud.err;
+  if (cloud.dirty) return 'Changes waiting to send';
+  if (!cloud.last) return 'Not synced yet';
+  const mins = Math.round((Date.now() - cloud.last) / 60000);
+  return 'Synced ' + (mins < 1 ? 'just now' : mins < 60 ? mins + ' min ago' : short(ymd(new Date(cloud.last))));
+}
+function refreshSyncStatus() { const el = $('#syncStatus'); if (el) { el.textContent = syncStatusText(); el.classList.toggle('warm', !!cloud.err); } }
+
+// Push reminders
+const b64uBytes = s => { const b = atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)); return Uint8Array.from(b, c => c.charCodeAt(0)); };
+const isStandalone = () => navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+async function enablePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') {
+    throw new Error(/iPhone|iPad/.test(navigator.userAgent) && !isStandalone() ? 'Add the app to your Home Screen first, then turn this on there.' : 'This browser can’t receive reminders.');
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') throw new Error('Notifications are off for this app. Turn them on in iPhone Settings → Notifications.');
+  const reg = await navigator.serviceWorker.ready;
+  const key = (await apiCall('push/key')).data.key;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uBytes(key) });
+  const j = sub.toJSON();
+  await apiCall('push/subscribe', { method: 'POST', body: { endpoint: j.endpoint, keys: j.keys, tz: Intl.DateTimeFormat().resolvedOptions().timeZone } });
+  cloud.push = j.endpoint; saveCloud();
+}
+async function disablePush() {
+  try { const reg = await navigator.serviceWorker.ready; const sub = await reg.pushManager.getSubscription(); if (sub) await sub.unsubscribe(); } catch (e) {}
+  if (cloud.push) await apiCall('push/unsubscribe', { method: 'POST', body: { endpoint: cloud.push } }).catch(() => {});
+  cloud.push = ''; saveCloud();
+}
+
+// Assists (Haiku): small, single-purpose helpers inside existing screens
+function weekSummary(from, days) {
+  const out = [];
+  for (let i = 0; i < days; i++) {
+    const d = addDays(from, i); if (d > todayStr()) break;
+    const L = dayLog(d); const m = L.m || {};
+    out.push({
+      date: d, day: DAYS_LONG[parse(d).getDay()],
+      planned: planFor(d).map(id => S.routines[id].name),
+      finished: Object.keys(L.done || {}).filter(id => S.routines[id] && routineProgress(d, id).full).map(id => S.routines[id].name),
+      moves_checked: dayProgress(d).k,
+      habits_done: S.habits.filter(h => ((L.habits || {})[h.id] || 0) >= h.target).map(h => h.name),
+      mood: moodIdx(m.mood) >= 0 ? MOOD_LABELS[moodIdx(m.mood)] : null,
+      win: m.win || null, grateful: m.grateful || null,
+    });
+  }
+  return out;
+}
+function loadEncouragement(d) {
+  if (!assistsOn() || d !== todayStr()) return;
+  if (cloud.enc && cloud.enc.date === d) return;
+  if (loadEncouragement.busy === d) return; loadEncouragement.busy = d;
+  const c = S.settings.cycle ? cycleInfo(d) : null;
+  apiCall('ai/encourage', { method: 'POST', body: { date: d, summary: { name: S.settings.name, today: { date: d, plan: planFor(d).map(id => S.routines[id].name) }, last_7_days: weekSummary(addDays(d, -7), 7), streak_days: streak(), cycle_phase: c && !c.stale ? c.phase : null } } })
+    .then(r => { cloud.enc = { date: d, line: String(r.data.line || '').slice(0, 220) }; saveCloud(); if (cloud.enc.line) for (const el of [$('#affLine'), $('#spLine')]) if (el) el.textContent = cloud.enc.line; })
+    .catch(() => {}).finally(() => { loadEncouragement.busy = null; });
+}
+function reflectWeek() {
+  const t = todayStr(); const ws = weekStart(t);
+  return parse(t).getDay() === 0 ? ws : addDays(ws, -7); // Sunday shows this week, otherwise last week
+}
+function loadReflection() {
+  if (!assistsOn()) return;
+  const wk = reflectWeek(); cloud.ref = cloud.ref || {};
+  if (cloud.ref[wk] || loadReflection.busy === wk) return;
+  const data = weekSummary(wk, 7);
+  if (!data.some(x => x.moves_checked || x.win || x.habits_done.length)) return;
+  loadReflection.busy = wk;
+  apiCall('ai/reflect', { method: 'POST', body: { week: wk, data: { name: S.settings.name, week_of: wk, days: data } } })
+    .then(r => { cloud.ref = { [wk]: { summary: String(r.data.summary || ''), focus: String(r.data.focus || '') } }; saveCloud(); if (route.tab === 'progress' && !document.querySelector('.sheet')) rerender(); })
+    .catch(() => {}).finally(() => { loadReflection.busy = null; });
+}
+function reflectionCard() {
+  if (!assistsOn()) return '';
+  const wk = reflectWeek(); const r = (cloud.ref || {})[wk];
+  if (!r) return '';
+  return `<div class="h2">Your week of ${short(wk)}</div><div class="card reflect"><p>${esc(r.summary)}</p><div class="cy-tip"><span>For next week</span>${esc(r.focus)}</div></div>`;
+}
+function busySheet(title, text) { return openSheet({ title, plain: true, body: `<div class="empty"><div class="spinner" aria-hidden="true"></div><span class="muted">${esc(text)}</span></div>` }); }
+async function movesFromScreenshot(id, file) {
+  const r = S.routines[id]; let img;
+  try { img = await resizeImage(file); } catch (e) { toast('Couldn’t open that image.'); return; }
+  const wait = busySheet('Reading screenshot', 'Finding the moves…');
+  let moves = [];
+  try { moves = (await apiCall('ai/moves', { method: 'POST', body: { image: img, routine: r.name } })).data.moves || []; }
+  catch (e) { wait.close(); toast(e.message); return; }
+  wait.close();
+  // keep the screenshot as inspiration either way
+  const rid = 'img' + uid(); await idb.set(rid, img).catch(() => {}); r.refs.unshift({ id: rid, kind: 'img', title: file.name || 'Screenshot' }); save();
+  if (!moves.length) { rerender(); refreshRefsSheet(); toast('No moves found. Saved it to inspiration.'); return; }
+  const picked = new Set(moves.map((_, i) => i));
+  const row = (mv, i) => `<button class="r" data-pickm="${i}" role="checkbox" aria-checked="true"><span class="l">${esc(mv.name)}${mv.note ? '<small>' + esc(mv.note) + '</small>' : ''}</span><span class="v">${esc(mv.reps)}</span><span class="check"><i style="background:var(--rose);border-color:var(--rose)">${CHECK.replace('<svg', '<svg style="opacity:1"')}</i></span></button>`;
+  const s = openSheet({
+    title: 'Add to ' + r.name, saveLabel: 'Add',
+    body: `<p>Found ${moves.length} move${moves.length > 1 ? 's' : ''}. Untick any you don’t want.</p><div class="rows" style="margin:0 16px;border:1px solid var(--line);border-radius:16px;overflow:hidden">${moves.map(row).join('')}</div>`,
+    save: () => {
+      const add = moves.filter((_, i) => picked.has(i)).map(mv => ex(String(mv.name).slice(0, 60), String(mv.reps || '').slice(0, 30), String(mv.note || '').slice(0, 80)));
+      if (!add.length) return;
+      const snap = snapshot(); r.items.push(...add); save(); rerender(); refreshRefsSheet();
+      toast(add.length + ' added to ' + r.name, () => restore(snap));
+    },
+  });
+  s.el.addEventListener('click', e => {
+    const b = e.target.closest('[data-pickm]'); if (!b) return; const i = Number(b.dataset.pickm);
+    picked.has(i) ? picked.delete(i) : picked.add(i); const on = picked.has(i);
+    b.setAttribute('aria-checked', on); const ic2 = b.querySelector('i');
+    ic2.style.cssText = on ? 'background:var(--rose);border-color:var(--rose)' : ''; ic2.innerHTML = on ? CHECK.replace('<svg', '<svg style="opacity:1"') : '';
+  });
+}
+const SWAP_REASONS = ['Sore knee', 'Low back', 'Wrists', 'No equipment', 'Low energy', 'Too hard', 'Too easy'];
+function openSwap(id) {
+  const r = S.routines[id]; let item = null, reason = null;
+  const body = `<div class="h2" style="margin-top:4px">Which move?</div><div class="rows swap-list" style="margin:0 16px;border:1px solid var(--line);border-radius:16px;overflow:hidden">${r.items.map(it => `<button class="r" data-swapi="${it.id}" role="radio" aria-checked="false"><span class="l">${esc(it.name)}</span><span class="v">${esc(it.reps)}</span></button>`).join('')}</div>
+    <div class="h2">Why swap it?</div><div class="chips-pick">${SWAP_REASONS.map(x => `<button data-swapr="${esc(x)}" aria-pressed="false">${esc(x)}</button>`).join('')}</div>
+    <div class="pad"><button class="btn primary block" data-swapgo disabled>Suggest swaps</button></div><div data-swapout></div>`;
+  const s = openSheet({ title: 'Swap a move', plain: true, body });
+  const go = s.el.querySelector('[data-swapgo]'); const out = s.el.querySelector('[data-swapout]');
+  const ready = () => { go.disabled = !(item && reason); };
+  s.el.addEventListener('click', async e => {
+    const bi = e.target.closest('[data-swapi]'), br = e.target.closest('[data-swapr]'), use = e.target.closest('[data-use]');
+    if (bi) { item = bi.dataset.swapi; s.el.querySelectorAll('[data-swapi]').forEach(x => x.setAttribute('aria-checked', String(x === bi))); ready(); }
+    if (br) { reason = br.dataset.swapr; s.el.querySelectorAll('[data-swapr]').forEach(x => x.setAttribute('aria-pressed', String(x === br))); ready(); }
+    if (e.target.closest('[data-swapgo]') && item && reason) {
+      const it = r.items.find(x => x.id === item); go.disabled = true; go.textContent = 'Thinking…';
+      try {
+        const opts = (await apiCall('ai/swap', { method: 'POST', body: { move: it.name, reps: it.reps, routine: r.name, reason } })).data.options || [];
+        out.innerHTML = `<div class="h2">Try one of these</div><div class="rows" style="margin:0 16px;border:1px solid var(--line);border-radius:16px;overflow:hidden">${opts.map((o, i) => `<div class="r" style="align-items:flex-start;padding-top:10px;padding-bottom:10px"><span class="l">${esc(o.name)} <span class="muted">· ${esc(o.reps)}</span><small>${esc(o.why)}</small></span><button class="btn soft" data-use="${i}" style="min-height:40px">Use</button></div>`).join('')}</div>`;
+        out._opts = opts;
+      } catch (err) { toast(err.message); }
+      go.disabled = false; go.textContent = 'Suggest again';
+    }
+    if (use) {
+      const o = out._opts[Number(use.dataset.use)]; const it = r.items.find(x => x.id === item); const snap = snapshot();
+      const old = it.name; it.name = String(o.name).slice(0, 60); it.reps = String(o.reps || it.reps).slice(0, 30); it.note = '';
+      save(); s.close(); rerender(); toast(old + ' → ' + it.name, () => restore(snap));
+    }
+  });
+}
+
 // ---------- Actions ----------
 const actions = {
+
+  async connect() {
+    const code = ($('#syncCode') || {}).value ? $('#syncCode').value.trim() : '';
+    if (!code) { $('#syncCode').classList.add('invalid'); return; }
+    const btn = $('[data-act="connect"]'); btn.disabled = true; btn.textContent = 'Connecting…';
+    try {
+      const health = await fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+      if (!health) throw new Error('Couldn’t reach the server. Check your connection.');
+      if (!health.setup) throw new Error('The server isn’t set up yet.');
+      await apiCall('state', { code });
+      cloud = { code, rev: 0, dirty: hasLocalData(), ai: !!health.ai }; saveCloud();
+      await sync();
+      if (cloud.err) throw new Error(cloud.err);
+      toast('Connected. Everything is backed up.'); rerender();
+    } catch (e) {
+      if (!cloud.last) { cloud = {}; saveCloud(); }
+      toast(e.message || 'Couldn’t connect.'); btn.disabled = false; btn.textContent = 'Connect';
+    }
+  },
+  async syncnow() { const el = $('#syncStatus'); if (el) el.textContent = 'Syncing…'; await sync(); refreshSyncStatus(); },
+  async togglepush(el) {
+    el.disabled = true;
+    try { if (cloud.push) { await disablePush(); toast('Push reminders off'); } else { await enablePush(); toast('Push reminders on'); } }
+    catch (e) { toast(e.message); }
+    rerender();
+  },
+  pushkind(el) { const k = el.dataset.k; S.settings[k] = S.settings[k] === false; save(); rerender(); },
+  async pushtest() { try { await apiCall('push/test', { method: 'POST', body: { endpoint: cloud.push } }); toast('Test sent'); } catch (e) { toast(e.message); } },
+  toggleassists() { S.settings.assists = S.settings.assists === false; save(); rerender(); },
+  disconnect() {
+    confirmSheet('Disconnect', 'This phone stops syncing. Your data stays here and in the cloud.', 'Disconnect this phone', async () => {
+      await disablePush(); cloud = {}; saveCloud(); rerender(); toast('Disconnected');
+    });
+  },
+  swap(el) { openSwap(el.dataset.id); },
   undo() { const u = pendingUndo; pendingUndo = null; $('#toast').classList.remove('show'); u && u(); },
   back(el) { back(el.dataset.to); },
   day(el) { const d = el.dataset.d; go(d === todayStr() ? 'today' : 'today?d=' + d, { replace: true, dir: 'keep' }); },
@@ -986,7 +1286,7 @@ const actions = {
   reset() {
     confirmSheet('Erase all data', 'This deletes every check-off, win and saved image on this phone. It can’t be undone.', 'Erase everything', async () => {
       const imgs = await idb.all().catch(() => ({})); await Promise.all(Object.keys(imgs).map(k => idb.del(k))).catch(() => {});
-      S = seed(); save(); go('today', { replace: true }); toast('Fresh start.');
+      S = seed(); S.cfgAt = Date.now(); save(); go('today', { replace: true }); toast('Fresh start.');
     });
   },
 };
@@ -1049,12 +1349,13 @@ document.addEventListener('change', e => {
       .then(() => { save(); rerender(); refreshRefsSheet(); toast(files.length > 1 ? files.length + ' images saved' : 'Image saved'); })
       .catch(() => toast('Couldn’t save that image.'));
   }
+  if (t.dataset.aimoves) { const f = t.files && t.files[0]; const id = t.dataset.aimoves; t.value = ''; if (f) movesFromScreenshot(id, f); return; }
   if (t.matches('[data-import]')) {
     const f = t.files && t.files[0]; if (!f) return;
     f.text().then(txt => {
       const j = JSON.parse(txt); if (!j || j.app !== 'healthy-hannah' || !j.data || !j.data.routines) throw new Error('bad');
       confirmSheet('Restore backup', 'Replaces everything on this phone with the backup from the file.', 'Restore backup', async () => {
-        S = j.data; save(); await Promise.all(Object.entries(j.images || {}).map(([k, v]) => idb.set(k, v))).catch(() => {});
+        S = j.data; normalize(); S.cfgAt = Date.now(); save(); await Promise.all(Object.entries(j.images || {}).map(([k, v]) => idb.set(k, v))).catch(() => {});
         go('today', { replace: true }); toast('Backup restored');
       });
     }).catch(() => toast('That file isn’t a Healthy Hannah backup.'));
@@ -1098,15 +1399,32 @@ function applyTheme() {
 }
 // day rollover + foreground refresh
 let lastDay = todayStr();
-function onForeground() { if (todayStr() !== lastDay) { lastDay = todayStr(); rerender(); } updateBadge(); }
+function onForeground() { if (todayStr() !== lastDay) { lastDay = todayStr(); rerender(); } updateBadge(); if (cloudOn()) scheduleSync(300); }
+addEventListener('online', () => { if (cloudOn()) scheduleSync(300); });
+document.addEventListener('visibilitychange', () => { if (document.hidden && cloudOn() && cloud.dirty) sync(); });
 document.addEventListener('visibilitychange', () => { if (!document.hidden) onForeground(); });
 addEventListener('pageshow', onForeground);
 
 // ---------- Boot ----------
 load(); applyTheme();
 route = parseHash(); render(); updateBadge();
-const splash = $('#splash'); const t0 = performance.timing ? performance.timing.navigationStart : 0;
-setTimeout(() => { splash.classList.add('gone'); setTimeout(() => splash.remove(), 450); }, Math.max(0, 700 - (Date.now() - t0)));
+if (cloudOn()) scheduleSync(600);
+if (cloudOn()) fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).then(h => { if (!!h.ai !== !!cloud.ai) { cloud.ai = !!h.ai; saveCloud(); rerender(); } }).catch(() => {});
+// Splash: today's verse + encouragement, then she taps in.
+(function splashIn() {
+  const splash = $('#splash'); if (!splash) return;
+  const d = todayStr(); const dn = Math.floor(parse(d).getTime() / 864e5);
+  const [vt, vr] = VERSES[dn % VERSES.length];
+  const line = assistsOn() && cloud.enc && cloud.enc.date === d ? cloud.enc.line : AFFIRM[(dn * 5) % AFFIRM.length];
+  const h = new Date().getHours(); const greet = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  const w = $('#spWords');
+  w.innerHTML = `<div class="sp-greet">${esc(greet)}, ${esc(S.settings.name)}</div>`
+    + (S.settings.verse ? `<p class="sp-verse">${esc(vt)}</p><cite class="sp-ref">${esc(vr)}</cite>` : '')
+    + `<div class="sp-line" id="spLine"${S.settings.verse ? '' : ' style="border:0;margin:0;padding:0;font-size:19px"'}>${esc(line)}</div>`;
+  const go = $('#spGo');
+  requestAnimationFrame(() => requestAnimationFrame(() => { w.classList.add('in'); go.classList.add('in'); go.focus({ preventScroll: true }); }));
+  go.addEventListener('click', () => { splash.classList.add('gone'); setTimeout(() => splash.remove(), 450); }, { once: true });
+})();
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
   navigator.serviceWorker.register('sw.js').catch(() => {});
