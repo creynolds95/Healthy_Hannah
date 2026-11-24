@@ -4,10 +4,10 @@ Installable PWA: daily plan, one-tap check-offs, habits, reminders, progress, a 
 
 - No build step, no server. Plain HTML/CSS/JS.
 - Data stays on her phone (localStorage, IndexedDB for saved images). Backup/restore under More.
-- Hosted on GitHub Pages from `main` (root).
+- Hosted on Cloudflare (Workers static assets, `wrangler.jsonc`). Every push to `main` deploys.
 
 ## Install on iPhone
-1. Open the Pages URL in **Safari**.
+1. Open the Cloudflare URL in **Safari**.
 2. Share → **Add to Home Screen**.
 3. Open it from the Home Screen. More → Reminders → **Add reminders to Calendar** so alerts reach her iPhone and Apple Watch.
 

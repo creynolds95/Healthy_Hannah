@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -400,7 +400,7 @@ function renderToday(v) {
     <div class="big" style="font-size:24px">${p.rest && !p.extraFull ? 'Rest day' : p.pct >= 1 ? 'All done' : p.k ? `${p.n - p.k} to go` : planFor(d).map(id => S.routines[id].name).join(' + ')}</div>
     <div class="sub" style="font-size:14px">${esc(aff)}</div></div></div></div>`;
   html += weekStrip(d);
-  if (S.settings.verse) html += `<div class="card" style="padding:14px 16px;margin-top:10px;background:var(--rose-soft);box-shadow:none"><div style="font-size:15px;line-height:1.45;color:var(--rose-ink)">“${esc(vt)}”</div><div class="muted" style="font-size:13px;margin-top:6px;font-weight:600">${esc(vr)}</div></div>`;
+  if (S.settings.verse) html += `<div class="verse"><q>${esc(vt)}</q><cite>${esc(vr)}</cite></div>`;
   html += cycleCard(d);
   if (missedYesterday) html +=`<div class="note">${esc(MISSED)}</div>`;
   if (p.pct >= 1 && !p.rest) html += `<div class="card rest-card" style="margin-top:12px"><b>${esc(pick(DAY_DONE, d))}</b><span class="muted">Tap ＋ to note a win.</span></div>`;
@@ -985,7 +985,7 @@ function applyTheme() {
   const t = S.settings.theme; const d = document.documentElement;
   if (t === 'auto') d.removeAttribute('data-theme'); else d.setAttribute('data-theme', t);
   const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-  $('meta[name="theme-color"]').setAttribute('content', dark ? '#1B1215' : '#FFF6F7');
+  $('meta[name="theme-color"]').setAttribute('content', dark ? '#1F1816' : '#FAF0EC');
 }
 // day rollover + foreground refresh
 let lastDay = todayStr();
