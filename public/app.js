@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.2.2';
+const VERSION = '2.3.0';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -827,9 +827,9 @@ function renderReminders(v) {
 function renderSync(v) {
   header('Cloud sync', backBtn('More', 'more'));
   if (!cloudOn()) {
-    v.innerHTML = `<p class="note" style="font-size:15px">Keep everything backed up in your own Cloudflare database, use the app on more than one device, and turn on push reminders and assists.</p>
-    <div class="card"><div class="frow"><label for="syncCode">Sync code<small>The code set up on the server</small></label><input id="syncCode" class="field" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:160px" enterkeyhint="go"></div></div>
-    <div class="pad" style="padding:14px 0 0"><button class="btn primary block" data-act="connect">Connect</button></div>`;
+    v.innerHTML = `<p class="note" style="font-size:15px">This app is already paired with another phone. On that phone, open More → Cloud sync → Add a device, then enter the 6-digit code here.</p>
+    <div class="card"><div class="frow"><label for="syncCode">Pairing code<small>Good for 10 minutes</small></label><input id="syncCode" class="field" inputmode="numeric" autocomplete="one-time-code" autocapitalize="off" spellcheck="false" style="width:160px" enterkeyhint="go"></div></div>
+    <div class="pad" style="padding:14px 0 0"><button class="btn primary block" data-act="connect">Pair this device</button></div>`;
     return;
   }
   v.innerHTML = `<div class="card rows"><div class="r"><span class="l">Status<small id="syncStatus" class="${cloud.err ? 'warm' : ''}">${esc(syncStatusText())}</small></span><button class="btn quiet" data-act="syncnow">Sync now</button></div></div>
@@ -840,6 +840,7 @@ function renderSync(v) {
     <div class="frow"><label>Send a test</label><button class="btn quiet" data-act="pushtest">Send</button></div>` : ''}
   </div><p class="note">Change the times in More → Reminders.</p>
   ${cloud.ai ? `<div class="h2">Assists</div><div class="card"><div class="frow"><label>Assists<small>A daily encouragement line, moves from screenshots, swap a move, and a weekly look back</small></label><button class="switch" role="switch" aria-checked="${S.settings.assists !== false}" data-act="toggleassists" aria-label="Assists"></button></div></div>` : ''}
+  <div class="h2">Devices</div><div class="card rows"><button class="r" data-act="paircode"><span class="l">Add a device<small>Shows a code to enter on the other phone</small></span>${CHEV}</button></div>
   <div class="h2">Manage</div><div class="card rows"><button class="r" data-act="disconnect"><span class="l" style="color:#B5533C">Disconnect this phone<small>Stops syncing here. Your data stays on this phone and in the cloud.</small></span></button></div>`;
 }
 function renderBackup(v) {
@@ -972,6 +973,21 @@ async function apiCall(path, opts) {
   if (!res.ok && res.status !== 409) throw new ApiError((data && data.error) || 'Couldn’t reach the server.', res.status);
   return { status: res.status, data };
 }
+// Pair this device with the server. With no code, it only works for the very first device.
+async function pairDevice(code) {
+  const health = await fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+  if (!health || !health.setup) throw new Error('Couldn’t reach the server.');
+  const r = await fetch('/api/pair', { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(code ? { code } : {}) });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.token) throw new Error(d.error || 'Couldn’t pair.');
+  cloud = { code: d.token, rev: 0, dirty: hasLocalData(), ai: !!health.ai }; saveCloud();
+  await sync(); if (cloud.err) throw new Error(cloud.err);
+}
+async function autoPair() {
+  if (cloudOn() || location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+  const h = await fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
+  if (h && h.setup && h.open) { try { await pairDevice(); rerender(); } catch (e) {} }
+}
 function hasLocalData() { return Object.keys(S.log).length > 0 || (S.cfgAt || 0) > 0; }
 function mergeState(a, b) {
   const out = JSON.parse(JSON.stringify((a.cfgAt || 0) >= (b.cfgAt || 0) ? a : b));
@@ -1015,7 +1031,7 @@ function sync() {
       cloud.last = Date.now(); cloud.err = '';
     } catch (e) {
       cloud.err = e.message || 'Couldn’t sync.';
-      if (e.status === 401) cloud.err = 'The sync code no longer matches. Enter it again.';
+      if (e.status === 401) cloud.err = 'This device needs to be paired again.';
     }
     saveCloud(); syncing = null; refreshSyncStatus();
   })();
@@ -1254,22 +1270,17 @@ function openSwap(id) {
 const actions = {
 
   async connect() {
-    const code = ($('#syncCode') || {}).value ? $('#syncCode').value.trim() : '';
-    if (!code) { $('#syncCode').classList.add('invalid'); return; }
-    const btn = $('[data-act="connect"]'); btn.disabled = true; btn.textContent = 'Connecting…';
+    const inp = $('#syncCode'); const code = inp ? inp.value.trim() : '';
+    if (!code) { inp.classList.add('invalid'); return; }
+    const btn = $('[data-act="connect"]'); btn.disabled = true; btn.textContent = 'Pairing…';
+    try { await pairDevice(code); toast('Paired. Everything is synced.'); rerender(); }
+    catch (e) { toast(e.message || 'Couldn’t pair.'); btn.disabled = false; btn.textContent = 'Pair this device'; }
+  },
+  async paircode() {
     try {
-      const health = await fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).catch(() => null);
-      if (!health) throw new Error('Couldn’t reach the server. Check your connection.');
-      if (!health.setup) throw new Error('The server isn’t set up yet.');
-      await apiCall('state', { code });
-      cloud = { code, rev: 0, dirty: hasLocalData(), ai: !!health.ai }; saveCloud();
-      await sync();
-      if (cloud.err) throw new Error(cloud.err);
-      toast('Connected. Everything is backed up.'); rerender();
-    } catch (e) {
-      if (!cloud.last) { cloud = {}; saveCloud(); }
-      toast(e.message || 'Couldn’t connect.'); btn.disabled = false; btn.textContent = 'Connect';
-    }
+      const r = (await apiCall('pair/code', { method: 'POST', body: {} })).data;
+      openSheet({ title: 'Add a device', plain: true, body: `<div class="empty" style="padding:28px 16px"><div style="font-size:40px;letter-spacing:.2em;font-weight:500">${esc(r.code)}</div><span class="muted">On the other phone, open Healthy Hannah → More → Cloud sync and enter this code. It works for ${r.minutes} minutes.</span></div>` });
+    } catch (e) { toast(e.message); }
   },
   async syncnow() { const el = $('#syncStatus'); if (el) el.textContent = 'Syncing…'; await sync(); refreshSyncStatus(); },
   async togglepush(el) {
@@ -1359,7 +1370,7 @@ const actions = {
   askplan() {
     document.querySelectorAll('.sheet [data-x]').forEach(x => x.click());
     if (assistsOn()) { setTimeout(openAskPlan, 50); return; }
-    toast(!cloudOn() ? 'Connect cloud sync first: More, then Cloud sync.' : !cloud.ai ? 'Add the Anthropic API key in Cloudflare to turn this on.' : 'Turn on Assists in More, then Cloud sync.');
+    toast(!cloudOn() ? 'Pair this device first: More, then Cloud sync.' : !cloud.ai ? 'Add the Anthropic API key in Cloudflare to turn this on.' : 'Turn on Assists in More, then Cloud sync.');
     if (!cloudOn() || S.settings.assists === false) go('more/sync');
   },
   dotoday(el) {
@@ -1563,7 +1574,7 @@ addEventListener('pageshow', onForeground);
 // ---------- Boot ----------
 load(); applyTheme();
 route = parseHash(); render(); updateBadge();
-if (cloudOn()) scheduleSync(600);
+if (cloudOn()) scheduleSync(600); else autoPair();
 if (cloudOn()) fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).then(h => { if (!!h.ai !== !!cloud.ai) { cloud.ai = !!h.ai; saveCloud(); rerender(); } }).catch(() => {});
 // Splash: today's verse + encouragement, then she taps in.
 (function splashIn() {

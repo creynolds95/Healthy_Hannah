@@ -10,6 +10,7 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS sent (key TEXT PRIMARY KEY, at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)',
   'CREATE TABLE IF NOT EXISTS ai_cache (key TEXT PRIMARY KEY, v TEXT NOT NULL, at INTEGER NOT NULL)',
+  'CREATE TABLE IF NOT EXISTS devices (hash TEXT PRIMARY KEY, created INTEGER NOT NULL, last INTEGER NOT NULL)',
 ];
 let schemaReady = false;
 async function ensureSchema(db) {
@@ -24,13 +25,43 @@ const json = (data, status = 200) => new Response(JSON.stringify(data), {
 const fail = (message, status) => json({ error: message }, status);
 
 async function sha(s) { return new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s))); }
-async function authorized(req, env) {
-  const h = req.headers.get('Authorization') || '';
-  const given = h.startsWith('Bearer ') ? h.slice(7) : '';
-  if (!env.SYNC_CODE || !given) return false;
-  const [a, b] = await Promise.all([sha(given), sha(env.SYNC_CODE)]);
+const hex = u8 => [...u8].map(x => x.toString(16).padStart(2, '0')).join('');
+async function sameAs(given, secret) {
+  if (!given || !secret) return false;
+  const [a, b] = await Promise.all([sha(given), sha(secret)]);
   let diff = 0; for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
   return diff === 0;
+}
+const bearer = req => { const h = req.headers.get('Authorization') || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
+// A device is allowed if it holds a token this server issued (auto-paired), or the optional SYNC_CODE secret.
+async function authorized(req, env) {
+  const given = bearer(req); if (!given) return false;
+  if (await sameAs(given, env.SYNC_CODE)) return true;
+  const h = hex(await sha(given));
+  const row = await env.DB.prepare('SELECT hash, last FROM devices WHERE hash = ?').bind(h).first();
+  if (!row) return false;
+  if (Date.now() - row.last > 864e5) await env.DB.prepare('UPDATE devices SET last = ? WHERE hash = ?').bind(Date.now(), h).run();
+  return true;
+}
+async function issueToken(env) {
+  const token = hex(crypto.getRandomValues(new Uint8Array(32)));
+  await env.DB.prepare('INSERT INTO devices (hash, created, last) VALUES (?, ?, ?)').bind(hex(await sha(token)), Date.now(), Date.now()).run();
+  return token;
+}
+// Only the app itself may call the API from a browser: other sites are refused.
+function fromApp(req, url) {
+  const o = req.headers.get('Origin'); if (o && o !== url.origin) return false;
+  const site = req.headers.get('Sec-Fetch-Site'); if (site && site !== 'same-origin' && site !== 'none') return false;
+  return true;
+}
+// Daily cap on model calls so a leaked token can't run up the bill.
+const AI_PER_DAY = 60;
+async function aiBudget(env) {
+  const k = 'ai:' + new Date().toISOString().slice(0, 10);
+  await env.DB.prepare("INSERT INTO config (k, v) VALUES (?, '1') ON CONFLICT(k) DO UPDATE SET v = CAST(v AS INTEGER) + 1").bind(k).run();
+  const n = Number((await env.DB.prepare('SELECT v FROM config WHERE k = ?').bind(k).first()).v);
+  if (n > AI_PER_DAY) throw new AiError('That’s plenty of assists for today. Try again tomorrow.', 429);
+  await env.DB.prepare("DELETE FROM config WHERE k LIKE 'ai:%' AND k < ?").bind('ai:' + new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10)).run();
 }
 
 async function body(req, max = 4_000_000) {
@@ -101,12 +132,38 @@ async function cachedAi(env, key, fn) {
 async function api(req, env, url) {
   const p = url.pathname.replace(/\/+$/, '');
   const m = req.method;
-  if (p === '/api/health') return json({ ok: true, setup: !!env.SYNC_CODE && !!env.DB, ai: !!env.ANTHROPIC_API_KEY });
-  if (!env.DB) return fail('The database isn’t connected yet.', 503);
-  if (!env.SYNC_CODE) return fail('Sync isn’t set up yet.', 503);
-  if (!(await authorized(req, env))) return fail('That sync code doesn’t match.', 401);
+  if (!env.DB) return p === '/api/health' ? json({ ok: true, setup: false, ai: !!env.ANTHROPIC_API_KEY }) : fail('The database isn’t connected yet.', 503);
   await ensureSchema(env.DB);
   const DB = env.DB;
+  const anyDevice = async () => !!(await DB.prepare('SELECT 1 FROM devices LIMIT 1').first());
+  if (p === '/api/health') return json({ ok: true, setup: true, ai: !!env.ANTHROPIC_API_KEY, open: !(await anyDevice()) });
+  if (!fromApp(req, url)) return fail('Not allowed.', 403);
+
+  // Pairing: the first device pairs itself. Later devices use a short code shown on a paired device (or the SYNC_CODE secret).
+  if (p === '/api/pair' && m === 'POST') {
+    const b = await body(req, 2_000); const code = String(b.code || '').trim();
+    let ok = !(await anyDevice());
+    if (!ok && code) ok = await sameAs(code, env.SYNC_CODE);
+    if (!ok && /^\d{6}$/.test(code)) {
+      const row = await DB.prepare("SELECT v FROM config WHERE k = 'paircode'").first();
+      const pc = row ? JSON.parse(row.v) : null;
+      if (pc && pc.exp > Date.now() && pc.tries < 5) {
+        ok = await sameAs(code, pc.code);
+        if (ok) await DB.prepare("DELETE FROM config WHERE k = 'paircode'").run();
+        else { pc.tries++; await DB.prepare("UPDATE config SET v = ? WHERE k = 'paircode'").bind(JSON.stringify(pc)).run(); }
+      }
+    }
+    if (!ok) return fail(code ? 'That code didn’t work. Get a fresh one from your other device.' : 'This app is already paired with another device.', 403);
+    return json({ token: await issueToken(env) });
+  }
+
+  if (!(await authorized(req, env))) return fail('This device needs to be paired again.', 401);
+
+  if (p === '/api/pair/code' && m === 'POST') {
+    const n = crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000; const code = String(n).padStart(6, '0');
+    await DB.prepare("INSERT OR REPLACE INTO config (k, v) VALUES ('paircode', ?)").bind(JSON.stringify({ code, exp: Date.now() + 10 * 60_000, tries: 0 })).run();
+    return json({ code, minutes: 10 });
+  }
 
   if (p === '/api/state' && m === 'GET') {
     const row = await DB.prepare('SELECT rev, data, updated FROM state WHERE id = 1').first();
@@ -168,22 +225,24 @@ async function api(req, env, url) {
   if (p === '/api/ai/encourage' && m === 'POST') {
     const b = await body(req, 60_000);
     const date = /^\d{4}-\d{2}-\d{2}$/.test(b.date) ? b.date : 'x';
-    return json(await cachedAi(env, 'enc|' + date, () => encourage(env, b.summary || {})));
+    return json(await cachedAi(env, 'enc|' + date, () => aiBudget(env).then(() => encourage(env, b.summary || {}))));
   }
   if (p === '/api/ai/reflect' && m === 'POST') {
     const b = await body(req, 60_000);
     const wk = /^\d{4}-\d{2}-\d{2}$/.test(b.week) ? b.week : 'x';
-    return json(await cachedAi(env, 'ref|' + wk, () => reflect(env, b.data || {})));
+    return json(await cachedAi(env, 'ref|' + wk, () => aiBudget(env).then(() => reflect(env, b.data || {}))));
   }
-  if (p === '/api/ai/moves' && m === 'POST') return json(await movesFromImage(env, await body(req, 4_000_000)));
+  if (p === '/api/ai/moves' && m === 'POST') { const b = await body(req, 4_000_000); await aiBudget(env); return json(await movesFromImage(env, b)); }
   if (p === '/api/ai/swap' && m === 'POST') {
     const b = await body(req, 10_000);
+    await aiBudget(env);
     return json(await swapMove(env, { move: String(b.move || '').slice(0, 80), reps: String(b.reps || '').slice(0, 30), routine: String(b.routine || '').slice(0, 60), reason: String(b.reason || '').slice(0, 60) }));
   }
   if (p === '/api/ai/plan' && m === 'POST') {
     const b = await body(req, 20_000);
     const request = String(b.request || '').trim().slice(0, 300);
     if (!request) return fail('Tell me what you’d like to work on.', 400);
+    await aiBudget(env);
     const r = await planWorkout(env, { request, phase: b.phase ? String(b.phase).slice(0, 20) : null,
       existing: (Array.isArray(b.existing) ? b.existing : []).slice(0, 12).map(x => String(x).slice(0, 40)),
       week: b.week && typeof b.week === 'object' ? b.week : {} });
