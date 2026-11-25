@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.3.0';
+const VERSION = '2.3.1';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -490,17 +490,7 @@ const PHASES = {
     ['Sleep', 'Sleep can be lighter around your period. An earlier night is a smart training choice.'],
     ['Movement', 'Mobility and yoga days fit beautifully here. Lift if you feel good.'],
     ['Mind', 'Many women feel more inward right now. Quiet time can feel especially restoring.'],
-  ], food: [
-    ['Lentil soup with a squeeze of lemon', 'Lentils bring iron, and the vitamin C in lemon helps your body absorb it.'],
-    ['Salmon or sardines on toast', 'Omega-3 fats are linked with milder period cramps in several studies.'],
-    ['Spinach and strawberry salad', 'Leafy greens give iron and folate. Berries add vitamin C to help absorb it.'],
-    ['Warm oatmeal with pumpkin seeds', 'Pumpkin seeds carry magnesium and iron. Something warm can feel comforting too.'],
-    ['Beef or bean chili with peppers', 'Iron plus vitamin C from peppers, in one easy pot.'],
-    ['Ginger tea', 'Ginger has fair evidence for easing period pain for some women.'],
-    ['Dark chocolate and a handful of almonds', 'Both bring magnesium, which supports muscle relaxation. Enjoy it.'],
-    ['Eggs with sautéed greens', 'Protein and iron for a day when energy is low.'],
-    ['Plenty of water and broth', 'Staying hydrated can ease bloating and headaches.'],
-  ], grace: [
+  ], nutrition: [['Iron and vitamin C', 'replace iron lost in bleeding; C helps you absorb it.'], ['Magnesium, omega-3s, warm meals and water', 'may ease cramps and fatigue.'], ['Lots of caffeine, alcohol and salty food', 'can worsen cramps, sleep and bloating.']], grace: [
     'Rest is not falling behind. It is part of how God made you.',
     'Showing up gently still counts as showing up.',
     'Come unto me, all ye that labour and are heavy laden, and I will give you rest.',
@@ -516,16 +506,7 @@ const PHASES = {
     ['Movement', 'Hips + Core days are a nice place to focus on slow, controlled form.'],
     ['Your body', 'Rising estrogen supports bone and muscle. Your training is building something lasting.'],
     ['Mind', 'Notice which workouts you actually enjoy. Joy keeps habits going.'],
-  ], food: [
-    ['Yogurt or kefir with berries', 'Fermented foods support gut health, and berries add fiber and color.'],
-    ['Chicken and veggie stir fry', 'Protein to match the energy many women feel rising now.'],
-    ['A big grain bowl with quinoa and roasted veg', 'Steady carbs and fiber fuel stronger workouts.'],
-    ['Eggs and avocado on whole grain toast', 'Protein, healthy fats and fiber for a steady morning.'],
-    ['Kimchi or sauerkraut on the side', 'A small serving of fermented veg adds variety for your gut.'],
-    ['Edamame or hummus with crunchy veg', 'Plant protein and fiber in an easy snack.'],
-    ['Citrus and leafy greens', 'Vitamin C and folate help replenish after your period.'],
-    ['Smoothie with oats, banana and nut butter', 'Good fuel before a workout you feel strong for.'],
-  ], grace: [
+  ], nutrition: [['Protein and B vitamins', 'support rising energy and recovery from training.'], ['Fiber and fermented foods', 'feed your gut, which helps process estrogen.'], ['Skipping meals before harder workouts', "you'll feel flat and recover slower."]], grace: [
     'His compassions are new every morning, and so is this season.',
     'Strength and honour are her clothing.',
     'Enjoy the energy as a gift, not a new standard.',
@@ -537,15 +518,7 @@ const PHASES = {
     ['Movement', 'Some studies link this window to looser ligaments. Warm up hips and knees well.'],
     ['Movement', 'Many women feel strongest now. Enjoy your favorite strength moves with good form.'],
     ['You might notice', 'A brief twinge on one side is common around ovulation.'],
-  ], food: [
-    ['Colorful salad with chickpeas', 'Fiber helps your body process hormones, and chickpeas add protein.'],
-    ['Roasted broccoli or cauliflower', 'Cruciferous veg bring fiber and helpful plant compounds.'],
-    ['Berries and a handful of walnuts', 'Antioxidants and omega-3s in one snack.'],
-    ['Grilled fish with lemon and greens', 'Lean protein and healthy fats keep you fueled at your peak.'],
-    ['Water with cucumber or citrus', 'Body temperature can rise a little now. Stay ahead on fluids.'],
-    ['Whole grain wrap with turkey and veg', 'Protein and fiber for steady energy on a busy day.'],
-    ['Flaxseed in oatmeal or a smoothie', 'Fiber and plant omega-3s, easy to add.'],
-  ], grace: [
+  ], nutrition: [['Fiber and antioxidants (vitamin C, E)', 'help your body clear the estrogen peak.'], ['Extra water and zinc', 'body temperature rises; zinc supports this phase.'], ['Alcohol', 'it adds strain on hormones and sleep right now.']], grace: [
     'I will praise thee; for I am fearfully and wonderfully made.',
     'Your body is not a project. It is a gift you care for.',
     'Celebrate what your body can do today.',
@@ -562,18 +535,7 @@ const PHASES = {
     ['Movement', 'If a lighter day is what you need, take it and still check it off.'],
     ['Food', 'Protein and complex carbs can steady energy and cravings.'],
     ['Movement', 'Mobility days feel especially good when you’re puffy or achy.'],
-  ], food: [
-    ['Sweet potato with beans or chicken', 'Complex carbs with protein can steady energy and mood.'],
-    ['Yogurt or milk with fruit', 'Calcium has good evidence for easing some PMS symptoms.'],
-    ['Brown rice, salmon and greens', 'Steady carbs, omega-3s and magnesium together.'],
-    ['A banana with peanut butter', 'Vitamin B6 and protein in a quick, satisfying snack.'],
-    ['Dark chocolate, a square or two', 'Cravings are common now. Magnesium in dark chocolate is a kind answer.'],
-    ['Oatmeal with seeds and cinnamon', 'Fiber and magnesium for a calm, steady start.'],
-    ['Chickpea or lentil curry', 'Plant protein and fiber that keep you full and steady.'],
-    ['Less salt, more water', 'Can help with the bloating some women feel before a period.'],
-    ['Herbal tea in the evening', 'A warm, caffeine-free wind-down can support sleep.'],
-    ['Regular meals, nothing skipped', 'Eating every few hours can steady cravings and mood swings.'],
-  ], grace: [
+  ], nutrition: [['Calcium, magnesium and vitamin B6', 'have good evidence for easing PMS.'], ['Complex carbs and regular meals', 'steady mood and cravings. Feeling hungrier is normal; your body uses more energy.'], ['Salt, caffeine, alcohol and sugar spikes', 'can add bloating, poor sleep and mood dips.']], grace: [
     'My grace is sufficient for thee: for my strength is made perfect in weakness.',
     'How you feel this week is not a measure of your worth.',
     'Be as kind to yourself as you would be to a friend.',
@@ -595,8 +557,7 @@ function cycleInfo(d) {
   const k = day - phaseStart; const cyc = starts.length; const P = PHASES[key];
   const t = P.tips[(k + cyc * 3) % P.tips.length];
   const more = [1, 2].map(o => P.tips[(k + cyc * 3 + o) % P.tips.length]);
-  const food = P.food ? P.food[(k + cyc * 4) % P.food.length] : null;
-  return { day, key, phase: P.name, icon: P.icon, tip: t, more, food, grace: P.grace[(k + cyc * 2) % P.grace.length], next: len - day + 1 };
+  return { day, key, phase: P.name, icon: P.icon, tip: t, more, nutrition: P.nutrition, grace: P.grace[(k + cyc * 2) % P.grace.length], next: len - day + 1 };
 }
 function cycleLen() {
   const st = ((S.cycle || {}).starts || []).slice().sort(); const gaps = [];
@@ -626,9 +587,8 @@ function cycleCard(d) {
     <div class="cy-h"><span class="e">${ic(c.icon)}</span><span class="l"><b>${c.phase} · day ${c.day}</b>${c.next > 0 && c.next < 8 ? `<small>Period expected in about ${c.next} day${c.next > 1 ? 's' : ''}</small>` : ''}</span>
     <button class="btn quiet" data-act="period" data-d="${d}" style="min-height:36px;font-size:14px">Period dates</button></div>
     <div class="cy-tip"><span>${esc(c.tip[0])}</span>${esc(c.tip[1])}</div>
-    ${c.food ? `<div class="cy-tip cy-food"><span>Food idea</span><b>${esc(c.food[0])}</b> · ${esc(c.food[1])}</div>` : ''}
     <div class="cy-grace">${esc(c.grace)}</div>
-    <details class="cy-more"><summary>More for this phase</summary>${c.more.map(t => `<div class="cy-tip"><span>${esc(t[0])}</span>${esc(t[1])}</div>`).join('')}</details></div>`;
+    <details class="cy-more"><summary>More for this phase</summary>${c.more.map(t => `<div class="cy-tip"><span>${esc(t[0])}</span>${esc(t[1])}</div>`).join('')}${c.nutrition ? `<div class="cy-tip cy-nut"><span>Nutrition</span>${['Focus on', 'Aim for', 'Go easy on'].map((h, i) => `<div><b>${h}:</b> ${esc(c.nutrition[i][0])}. <span class="muted">${esc(c.nutrition[i][1].charAt(0).toUpperCase() + c.nutrition[i][1].slice(1))}</span></div>`).join('')}</div>` : ''}</details></div>`;
 }
 function weekStrip(sel) {
   const ws = weekStart(sel); const today = todayStr(); let h = '<div class="weekstrip" role="group" aria-label="This week">';

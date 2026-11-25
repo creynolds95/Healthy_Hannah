@@ -336,3 +336,6 @@ details.folder > summary::-webkit-details-marker { display: none; }
 details.folder > summary .ic { width: 15px; height: 15px; vertical-align: -2px; }
 details.folder:not([open]) > summary { opacity: .75; }
 .hero .sub .ic { width: 15px; height: 15px; vertical-align: -2px; }
+.cy-nut div { margin-top: 6px; line-height: 1.45; }
+.cy-nut div span { display: inline; font-size: inherit; letter-spacing: 0; text-transform: none; margin: 0; }
+.cy-nut b { font-weight: 600; }
