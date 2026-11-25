@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.0.5';
+const VERSION = '2.0.6';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -560,13 +560,28 @@ function cycleLen() {
   for (let i = 1; i < st.length; i++) { const g = Math.round((parse(st[i]) - parse(st[i - 1])) / 864e5); if (g >= 20 && g <= 45) gaps.push(g); }
   return gaps.length ? Math.round(gaps.slice(-4).reduce((a, b) => a + b, 0) / Math.min(4, gaps.length)) : 28;
 }
+// Pick the first day of a period (defaults to today, any past date), and see or remove past starts.
+function openPeriod(d) {
+  const today = todayStr(); const starts = ((S.cycle || {}).starts || []).slice().sort().reverse();
+  const body = `<div class="frow"><label for="pd">First day of your period<small>Pick the day it started, even if that was a while ago.</small></label>
+    <input id="pd" type="date" class="field" style="width:160px" value="${d <= today ? d : today}" max="${today}"></div>
+    <div style="padding:0 16px 16px">${starts.length ? `<div class="h2">Logged starts</div><div class="card rows">${starts.map(x => `<div class="r"><span class="l">${esc(short(x))}</span><button class="tb-btn" data-act="delperiod" data-d="${x}" aria-label="Remove ${esc(short(x))}">${ICON.x}</button></div>`).join('')}</div>` : ''}
+    <p class="muted" style="font-size:13px">Two or more starts let the app learn your cycle length. Until then it assumes 28 days.</p></div>`;
+  openSheet({ title: 'Period start', body, saveLabel: 'Save', save: b => {
+    const v = b.querySelector('#pd').value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v) || v > today) { b.querySelector('#pd').classList.add('invalid'); return false; }
+    S.cycle = S.cycle || { starts: [] }; const snap = snapshot();
+    S.cycle.starts = S.cycle.starts.filter(x => Math.abs((parse(x) - parse(v)) / 864e5) > 10).concat(v).sort();
+    save(); rerender(); toast('Period start saved · ' + short(v), () => restore(snap));
+  } });
+}
 function cycleCard(d) {
   if (!S.settings.cycle) return '';
   const c = cycleInfo(d);
-  if (!c || c.stale) return `<div class="card rows" style="margin-top:10px"><button class="r" data-act="period" data-d="${d}"><span class="e">${ic('moon')}</span><span class="l">${c ? 'Log your next period start' : 'Cycle insights'}<small>Tap on the day your period starts</small></span>${CHEV}</button></div>`;
+  if (!c || c.stale) return `<div class="card rows" style="margin-top:10px"><button class="r" data-act="period" data-d="${d}"><span class="e">${ic('moon')}</span><span class="l">${c ? 'Log your next period start' : 'Cycle insights'}<small>Set the first day of your last period</small></span>${CHEV}</button></div>`;
   return `<div class="card cycle" style="margin-top:10px">
     <div class="cy-h"><span class="e">${ic(c.icon)}</span><span class="l"><b>${c.phase} · day ${c.day}</b>${c.next > 0 && c.next < 8 ? `<small>Period expected in about ${c.next} day${c.next > 1 ? 's' : ''}</small>` : ''}</span>
-    <button class="btn quiet" data-act="period" data-d="${d}" style="min-height:36px;font-size:14px">Period started</button></div>
+    <button class="btn quiet" data-act="period" data-d="${d}" style="min-height:36px;font-size:14px">Period dates</button></div>
     <div class="cy-tip"><span>${esc(c.tip[0])}</span>${esc(c.tip[1])}</div>
     <div class="cy-grace">${esc(c.grace)}</div>
     <details class="cy-more"><summary>More for this phase</summary>${c.more.map(t => `<div class="cy-tip"><span>${esc(t[0])}</span>${esc(t[1])}</div>`).join('')}</details></div>`;
@@ -720,7 +735,7 @@ function renderMore(v) {
   const perm = typeof Notification !== 'undefined' ? Notification.permission : 'unsupported';
   v.innerHTML = `<div class="h2" style="margin-top:8px">Stay on track</div><div class="card rows">
     <a class="r" href="#more/reminders" data-push><span class="l">Reminders</span><span class="v">${esc(fmtTime(S.settings.remindTime))}${cloud.push ? ' · Push' : ''}</span>${CHEV}</a>
-    <div class="frow"><label>Cycle insights<small>What each phase does, with grace. Postpartum and breastfeeding cycles can be irregular, so days are estimates.</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.cycle}" data-act="togglecycle" aria-label="Cycle insights"></button></div></div>
+    <div class="frow"><label>Cycle insights<small>What each phase does, with grace. Postpartum and breastfeeding cycles can be irregular, so days are estimates.</small></label><button class="switch" role="switch" aria-checked="${!!S.settings.cycle}" data-act="togglecycle" aria-label="Cycle insights"></button></div>${S.settings.cycle ? `<button class="frow" data-act="period" style="width:100%;text-align:left"><label>Period dates<small>${(S.cycle && S.cycle.starts && S.cycle.starts.length) ? 'Last started ' + esc(short(S.cycle.starts.slice().sort().pop())) : 'Not set yet'}</small></label>${CHEV}</button>` : ''}</div>
   <div class="h2">You</div><div class="card">
     <div class="frow"><label for="nm">Name</label><input id="nm" class="field" value="${esc(S.settings.name)}" data-setting="name" enterkeyhint="done"></div>
     <div class="frow"><label>Daily verse<small>Scripture on Today</small></label><button class="switch" role="switch" aria-checked="${S.settings.verse}" data-act="toggleverse" aria-label="Daily verse"></button></div>
@@ -1156,12 +1171,13 @@ const actions = {
   back(el) { back(el.dataset.to); },
   day(el) { const d = el.dataset.d; go(d === todayStr() ? 'today' : 'today?d=' + d, { replace: true, dir: 'keep' }); },
   log(el) { openLog(el.dataset.d || todayStr()); },
-  period(el) {
-    const d = el.dataset.d; S.cycle = S.cycle || { starts: [] }; const snap = snapshot();
-    S.cycle.starts = S.cycle.starts.filter(x => Math.abs((parse(x) - parse(d)) / 864e5) > 10).concat(d).sort();
-    save(); rerender(); toast('Period start saved · ' + short(d), () => restore(snap));
+  period(el) { openPeriod(el.dataset.d || todayStr()); },
+  delperiod(el) {
+    const x = el.dataset.d; const snap = snapshot();
+    S.cycle.starts = S.cycle.starts.filter(y => y !== x); save(); rerender();
+    el.closest('.r').remove(); toast('Removed ' + short(x), () => restore(snap));
   },
-  togglecycle() { S.settings.cycle = !S.settings.cycle; save(); rerender(); },
+  togglecycle() { S.settings.cycle = !S.settings.cycle; save(); rerender(); if (S.settings.cycle && !((S.cycle || {}).starts || []).length) openPeriod(todayStr()); },
   toggle(el) {
     const k = el.dataset.d + el.dataset.id; const card = el.closest('.card'); const open = !card.classList.contains('open');
     card.classList.toggle('open', open); el.setAttribute('aria-expanded', open);
