@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.2.1';
+const VERSION = '2.2.2';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -668,7 +668,7 @@ function renderPlan(v) {
     h += `<button class="r" data-act="editday" data-dw="${dw}"><span class="l"><b style="font-weight:600">${DAYS_LONG[dw]}</b><small>${ids.length ? ids.map(id => esc(S.routines[id].name)).join(' · ') : 'Rest'}</small></span>${CHEV}</button>`;
   });
   h += '</div><div class="h2">Workouts</div><div class="card rows">';
-  if (assistsOn()) h += `<button class="r" data-act="askplan"><span class="e">${ic('spark')}</span><span class="l" style="color:var(--rose);font-weight:600">Ask for a workout<small style="color:var(--muted);font-weight:400">Tell it what you want to work on</small></span>${CHEV}</button>`;
+  h += `<button class="r" data-act="askplan"><span class="e">${ic('spark')}</span><span class="l" style="color:var(--rose);font-weight:600">Ask for a workout<small style="color:var(--muted);font-weight:400">Tell it what you want to work on</small></span>${CHEV}</button>`;
   const row = id => { const r = S.routines[id]; const days = ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]);
     return `<a class="r" href="#plan/r/${id}" data-push><span class="e">${ic(r.emoji)}</span><span class="l">${esc(r.name)}<small>${r.items.length} moves${days.length ? ' · ' + days.join(', ') : ''}${r.refs.length ? ' · ' + r.refs.length + ' saved' : ''}</small></span>${CHEV}</a>`; };
   const fs = folders();
@@ -1356,7 +1356,12 @@ const actions = {
     });
   },
   newroutine() { routineForm(); },
-  askplan() { openAskPlan(); },
+  askplan() {
+    document.querySelectorAll('.sheet [data-x]').forEach(x => x.click());
+    if (assistsOn()) { setTimeout(openAskPlan, 50); return; }
+    toast(!cloudOn() ? 'Connect cloud sync first: More, then Cloud sync.' : !cloud.ai ? 'Add the Anthropic API key in Cloudflare to turn this on.' : 'Turn on Assists in More, then Cloud sync.');
+    if (!cloudOn() || S.settings.assists === false) go('more/sync');
+  },
   dotoday(el) {
     const id = el.dataset.id, t = todayStr(); const snap = snapshot(); const L = dayLog(t, true);
     if (addedToday(t, id)) { L.add = L.add.filter(x => x !== id); save(); rerender(); toast('Removed from today', () => restore(snap)); return; }
@@ -1445,9 +1450,9 @@ function iconPicker(cur) {
 function pickedIcon(b) { const x = b.querySelector('[data-icon][aria-checked="true"]'); return x ? x.dataset.icon : 'spark'; }
 function routineForm(id) {
   const r = id ? S.routines[id] : { name: '', emoji: 'dumbbell', note: '' };
-  const body = `<div class="card" style="margin:0 16px">${iconPicker(r.emoji)}
+  const body = `${id ? '' : `<div class="card rows" style="margin:0 16px 12px"><button class="r" data-act="askplan"><span class="e">${ic('spark')}</span><span class="l" style="color:var(--rose);font-weight:600">Ask for a workout<small style="color:var(--muted);font-weight:400">Describe it and get a full workout</small></span>${CHEV}</button></div><div class="h2">Or build your own</div>`}<div class="card" style="margin:0 16px">${iconPicker(r.emoji)}
     <div class="frow"><label>Name</label><input class="field" data-f="name" value="${esc(r.name)}" style="width:190px" placeholder="Glutes"></div>
-    <div class="frow" style="display:block"><label style="display:block;margin-bottom:6px">Note</label><textarea class="field" data-f="note" rows="2" placeholder="Form cues, how you like to do it">${esc(r.note)}</textarea></div></div>
+    <div class="frow" style="display:block"><label style="display:block;margin-bottom:6px">Note</label><textarea class="field wide" data-f="note" rows="3" placeholder="Form cues, how you like to do it">${esc(r.note)}</textarea></div></div>
     <div class="h2">Folder</div>${folderPicker(r.folder || '')}`;
   openSheet({
     title: id ? 'Edit workout' : 'New workout', body,
@@ -1590,7 +1595,10 @@ if (cloudOn()) fetch('/api/health', { cache: 'no-store' }).then(r => r.json()).t
 })();
 
 if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  // When a new version takes over, reload once so she sees it right away (not on the next open).
+  const hadSW = !!navigator.serviceWorker.controller; let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && !reloaded && !userEditing() && !document.querySelector('.sheet')) { reloaded = true; location.reload(); } });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => r.update()).catch(() => {});
 }
 window.__hh = { get S() { return S; }, buildIcs };
 })();
