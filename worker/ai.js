@@ -85,3 +85,24 @@ export function reflect(env, week) {
     maxTokens: 1500,
   });
 }
+
+// 5) Turn a short ask ("I need pelvic floor exercises") into a repeatable workout she can save to her week.
+const ICONS = ['wave', 'dumbbell', 'flower', 'lotus', 'ring', 'heart', 'leaf', 'sun', 'spark', 'run', 'bike', 'drop', 'steps', 'pill', 'book', 'moon', 'sprout'];
+export function planWorkout(env, { request, phase, existing, week }) {
+  return ask(env, {
+    system: `Design one repeatable home workout from her request, to be saved alongside her other workouts and done on set days each week.
+- name: 2 to 4 plain words, like "Pelvic Floor Reset".
+- icon: one of ${ICONS.join(', ')}.
+- note: one or two short sentences on how to do it well (breath, pace, form). For pelvic floor, core or postpartum requests, include a gentle line that a pelvic floor physical therapist can tailor it, and to stop if anything hurts, leaks or feels heavy.
+- moves: 5 to 10 distinct exercises in order, bodyweight or light equipment. name short and plain. reps like "10", "30 sec", "3x10", "10 each side". note is one short form cue or "".
+- days: the weekdays to repeat it, as numbers 0=Sunday to 6=Saturday. Pick a sensible frequency for the goal (pelvic floor and mobility can be most days, strength 2 to 3 days with rest between) and prefer days that fit around her current week.
+- If her cycle phase is given and relevant, let it shape intensity gently, without making the plan about the cycle.
+- If the request is not about exercise or movement, return a gentle mobility workout and say so in the note.`,
+    content: JSON.stringify({ request, cycle_phase: phase || null, her_current_workouts: existing || [], her_current_week: week || {} }),
+    schema: z.object({
+      name: z.string(), icon: z.string(), note: z.string(), days: z.array(z.number().int()),
+      moves: z.array(z.object({ name: z.string(), reps: z.string(), note: z.string() })),
+    }),
+    maxTokens: 2500,
+  });
+}

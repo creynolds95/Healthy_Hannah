@@ -330,3 +330,8 @@ a { color: inherit; text-decoration: none; }
 .chips-pick button { min-height: 40px; padding: 0 16px; border-radius: 20px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
 .chips-pick button[aria-pressed="true"] { background: var(--rose-soft); border-color: var(--rose-2); color: var(--rose-ink); }
 .reflect p { margin: 0 0 12px; line-height: 1.55; }
+details.folder > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+details.folder > summary::-webkit-details-marker { display: none; }
+details.folder > summary .ic { width: 15px; height: 15px; vertical-align: -2px; }
+details.folder:not([open]) > summary { opacity: .75; }
+.hero .sub .ic { width: 15px; height: 15px; vertical-align: -2px; }

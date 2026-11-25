@@ -2,7 +2,7 @@
 (function () {
 'use strict';
 
-const VERSION = '2.0.6';
+const VERSION = '2.2.0';
 const KEY = 'hh.v1';
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DAYS_LONG = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -235,7 +235,11 @@ function dayLog(d, create) {
   if (!L && create) L = S.log[d] = { done: {}, habits: {}, m: {} };
   return L || { done: {}, habits: {}, m: {} };
 }
-function planFor(d) { return (S.week[parse(d).getDay()] || []).filter(id => S.routines[id]); }
+function planFor(d) {
+  const wk = S.week[parse(d).getDay()] || []; const add = ((S.log[d] || {}).add || []).filter(id => !wk.includes(id));
+  return wk.concat(add).filter(id => S.routines[id]);
+}
+const addedToday = (d, id) => ((S.log[d] || {}).add || []).includes(id) && !(S.week[parse(d).getDay()] || []).includes(id);
 function routinesFor(d) {
   const L = dayLog(d);
   const extra = Object.keys(L.done || {}).filter(id => S.routines[id] && !planFor(d).includes(id) && Object.values(L.done[id]).some(Boolean));
@@ -624,10 +628,17 @@ function renderPlan(v) {
     h += `<button class="r" data-act="editday" data-dw="${dw}"><span class="l"><b style="font-weight:600">${DAYS_LONG[dw]}</b><small>${ids.length ? ids.map(id => esc(S.routines[id].name)).join(' · ') : 'Rest'}</small></span>${CHEV}</button>`;
   });
   h += '</div><div class="h2">Workouts</div><div class="card rows">';
-  Object.keys(S.routines).forEach(id => {
-    const r = S.routines[id]; const days = ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]);
-    h += `<a class="r" href="#plan/r/${id}" data-push><span class="e">${ic(r.emoji)}</span><span class="l">${esc(r.name)}<small>${r.items.length} moves${days.length ? ' · ' + days.join(', ') : ''}${r.refs.length ? ' · ' + r.refs.length + ' saved' : ''}</small></span>${CHEV}</a>`;
+  if (assistsOn()) h += `<button class="r" data-act="askplan"><span class="e">${ic('spark')}</span><span class="l" style="color:var(--rose);font-weight:600">Ask for a workout<small style="color:var(--muted);font-weight:400">Tell it what you want to work on</small></span>${CHEV}</button>`;
+  const row = id => { const r = S.routines[id]; const days = ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]);
+    return `<a class="r" href="#plan/r/${id}" data-push><span class="e">${ic(r.emoji)}</span><span class="l">${esc(r.name)}<small>${r.items.length} moves${days.length ? ' · ' + days.join(', ') : ''}${r.refs.length ? ' · ' + r.refs.length + ' saved' : ''}</small></span>${CHEV}</a>`; };
+  const fs = folders();
+  Object.keys(S.routines).filter(id => !S.routines[id].folder).forEach(id => { h += row(id); });
+  h += '</div>';
+  fs.forEach(f => {
+    const ids = Object.keys(S.routines).filter(id => S.routines[id].folder === f);
+    h += `<details class="folder" open><summary class="h2"><span>${ic('book')} ${esc(f)}</span><span class="muted">${ids.length}</span></summary><div class="card rows">${ids.map(row).join('')}</div></details>`;
   });
+  h += '<div>';
   h += '</div><div class="h2">Habits</div><div class="card rows">';
   S.habits.forEach(hb => { h += `<button class="r" data-act="edithabit" data-id="${hb.id}"><span class="e">${ic(hb.emoji)}</span><span class="l">${esc(hb.name)}</span><span class="v">${hb.target > 1 ? hb.target + ' ' + esc(hb.unit || '') : 'Daily'}</span>${CHEV}</button>`; });
   h += `<button class="r" data-act="edithabit"><span class="l" style="color:var(--rose);font-weight:600">＋ Add habit</span></button></div>`;
@@ -637,7 +648,9 @@ function renderRoutine(v, id) {
   const r = S.routines[id];
   header(r.name, backBtn('Plan', 'plan'), `<button class="tb-btn" data-act="editroutine" data-id="${id}" aria-label="Edit">${ICON.pencil}</button>`);
   let h = `<div class="hero"><div class="eyebrow">${ORDER.filter(dw => (S.week[dw] || []).includes(id)).map(dw => DAYS[dw]).join(' · ') || 'Not scheduled'}</div>
-    <div class="big">${r.items.length} moves</div>${r.note ? `<div class="sub">${esc(r.note)}</div>` : ''}</div>`;
+    <div class="big">${r.items.length} moves</div>${r.note ? `<div class="sub">${esc(r.note)}</div>` : ''}${r.folder ? `<div class="sub" style="margin-top:6px">${ic('book')} ${esc(r.folder)}</div>` : ''}</div>`;
+  const t = todayStr(); const onWeek = (S.week[parse(t).getDay()] || []).includes(id);
+  h += `<div class="pad" style="padding-top:0;margin-bottom:12px">${onWeek ? `<div class="muted" style="text-align:center;font-size:14px">On your plan today</div>` : addedToday(t, id) ? `<button class="btn soft block" data-act="dotoday" data-id="${id}">On today · Remove</button>` : `<button class="btn primary block" data-act="dotoday" data-id="${id}">Do this today</button>`}</div>`;
   h += '<div class="card">';
   r.items.forEach((it, i) => {
     h += `<div class="edit-ex" style="${i === 0 ? 'border-top:0' : ''}"><input class="field f-name" value="${esc(it.name)}" data-edit="name" data-id="${id}" data-item="${it.id}" aria-label="Move name" enterkeyhint="done">
@@ -929,6 +942,7 @@ function mergeState(a, b) {
     const L = { done: {}, habits: {}, m: Object.assign({}, y.m || {}, x.m || {}) };
     new Set(Object.keys(x.done || {}).concat(Object.keys(y.done || {}))).forEach(id => { L.done[id] = Object.assign({}, (y.done || {})[id], (x.done || {})[id]); });
     new Set(Object.keys(x.habits || {}).concat(Object.keys(y.habits || {}))).forEach(id => { L.habits[id] = Math.max((x.habits || {})[id] || 0, (y.habits || {})[id] || 0); });
+    const add = [...new Set((x.add || []).concat(y.add || []))]; if (add.length) L.add = add;
     out.log[d] = L;
   });
   return out;
@@ -1101,6 +1115,72 @@ async function movesFromScreenshot(id, file) {
   });
 }
 const SWAP_REASONS = ['Sore knee', 'Low back', 'Wrists', 'No equipment', 'Low energy', 'Too hard', 'Too easy'];
+const PLAN_IDEAS = ['Pelvic floor, gentle', 'Glutes and hips', 'Upper body, light weights', 'Deep core, postpartum', 'Stretch for tight hips', '15 minutes, low energy'];
+const folders = () => [...new Set(Object.values(S.routines).map(r => r.folder).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+// Folder chooser: existing folders as chips, plus a box for a new one.
+function folderPicker(cur) {
+  return `<div class="chips-pick folder-pick" style="margin:0 16px 8px"><button data-fold="" aria-pressed="${!cur}">No folder</button>${folders().map(f => `<button data-fold="${esc(f)}" aria-pressed="${f === cur}">${esc(f)}</button>`).join('')}</div>
+    <div class="pad" style="padding-top:0"><input class="field" data-newfold maxlength="30" placeholder="Or a new folder, like Pelvic floor" value=""></div>`;
+}
+function pickedFolder(root) {
+  const n = root.querySelector('[data-newfold]'); if (n && n.value.trim()) return n.value.trim().slice(0, 30);
+  const on = root.querySelector('[data-fold][aria-pressed="true"]'); return on ? on.dataset.fold : '';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-fold]'); if (!b) return;
+  b.parentNode.querySelectorAll('[data-fold]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  const n = b.closest('.sheet-b') && b.closest('.sheet-b').querySelector('[data-newfold]'); if (n) n.value = '';
+});
+document.addEventListener('input', e => {
+  if (!e.target.matches('[data-newfold]')) return;
+  const box = e.target.closest('.sheet-b'); if (box && e.target.value.trim()) box.querySelectorAll('[data-fold]').forEach(x => x.setAttribute('aria-pressed', 'false'));
+});
+function openAskPlan() {
+  const body = `<div class="pad" style="padding-top:4px"><textarea class="field" id="askTxt" rows="3" maxlength="300" placeholder="I need pelvic floor exercises. Give me a cycle to work on."></textarea></div>
+    <div class="chips-pick" style="margin:0 16px 12px">${PLAN_IDEAS.map(x => `<button data-idea="${esc(x)}" aria-pressed="false">${esc(x)}</button>`).join('')}</div>
+    <div class="pad"><button class="btn primary block" data-askgo>Suggest a workout</button></div><div data-askout></div>`;
+  const s = openSheet({ title: 'Ask for a workout', plain: true, body });
+  const txt = s.el.querySelector('#askTxt'), btn = s.el.querySelector('[data-askgo]'), out = s.el.querySelector('[data-askout]');
+  let plan = null, days = new Set();
+  const dayChips = () => `<div class="chips-pick" style="margin:0 16px 12px">${ORDER.map(dw => `<button data-pday="${dw}" aria-pressed="${days.has(dw)}">${DAYS[dw]}</button>`).join('')}</div>`;
+  const draw = () => {
+    out.innerHTML = `<div class="h2">${esc(plan.name)}</div>
+      <div class="card" style="margin:0 16px"><div style="padding:12px 16px;display:flex;gap:12px;align-items:flex-start"><span class="e">${ic(icKey(plan.icon))}</span><span class="muted" style="font-size:14px">${esc(plan.note)}</span></div>
+      <div class="rows">${plan.moves.map(m => `<div class="r"><span class="l">${esc(m.name)}${m.note ? `<small>${esc(m.note)}</small>` : ''}</span><span class="v">${esc(m.reps)}</span></div>`).join('')}</div></div>
+      <div class="h2">Repeat on<small class="muted" style="text-transform:none;letter-spacing:0;font-weight:400"> · leave blank to keep it in the book</small></div>${dayChips()}
+      <div class="h2">Folder</div>${folderPicker(plan.folder || '')}
+      <div class="frow" style="border:0"><label>Do it today too</label><button class="switch" role="switch" aria-checked="false" data-asktoday aria-label="Do it today too"></button></div>
+      <div class="pad"><button class="btn primary block" data-asksave>Save workout</button></div>`;
+  };
+  s.el.addEventListener('click', async e => {
+    const idea = e.target.closest('[data-idea]'), pd = e.target.closest('[data-pday]');
+    if (idea) { txt.value = idea.dataset.idea; s.el.querySelectorAll('[data-idea]').forEach(x => x.setAttribute('aria-pressed', String(x === idea))); }
+    const st = e.target.closest('[data-asktoday]'); if (st) st.setAttribute('aria-checked', String(st.getAttribute('aria-checked') !== 'true'));
+    if (pd) { const dw = Number(pd.dataset.pday); days.has(dw) ? days.delete(dw) : days.add(dw); pd.setAttribute('aria-pressed', String(days.has(dw))); }
+    if (e.target.closest('[data-askgo]')) {
+      const request = txt.value.trim(); if (!request) { txt.classList.add('invalid'); txt.focus(); return; }
+      txt.blur(); btn.disabled = true; btn.textContent = 'Putting it together…';
+      const c = S.settings.cycle ? cycleInfo(todayStr()) : null;
+      const week = {}; ORDER.forEach(dw => { week[DAYS[dw]] = (S.week[dw] || []).filter(id => S.routines[id]).map(id => S.routines[id].name); });
+      try {
+        const r = (await apiCall('ai/plan', { method: 'POST', body: { request, phase: c && !c.stale ? c.phase : null, existing: Object.values(S.routines).map(x => x.name), week } })).data;
+        if (!r.moves || !r.moves.length) throw new Error('Nothing came back. Try saying it another way.');
+        plan = r; days = new Set(r.days || []); draw();
+        out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (err) { toast(err.message); }
+      btn.disabled = false; btn.textContent = plan ? 'Suggest another' : 'Suggest a workout';
+    }
+    if (e.target.closest('[data-asksave]') && plan) {
+      const snap = snapshot(); const nid = 'r' + uid();
+      S.routines[nid] = { name: String(plan.name).slice(0, 40) || 'New workout', emoji: icKey(plan.icon), note: String(plan.note || '').slice(0, 300),
+        items: plan.moves.slice(0, 12).map(m => ex(String(m.name).slice(0, 60), String(m.reps || '').slice(0, 30), String(m.note || '').slice(0, 140))), refs: [], folder: pickedFolder(out) };
+      days.forEach(dw => { S.week[dw] = (S.week[dw] || []).concat(nid); });
+      if (out.querySelector('[data-asktoday]').getAttribute('aria-checked') === 'true') { const L = dayLog(todayStr(), true); L.add = (L.add || []).concat(nid); }
+      save(); s.close(); go('plan/r/' + nid);
+      toast(S.routines[nid].name + ' saved' + (days.size ? ' · ' + ORDER.filter(d => days.has(d)).map(d => DAYS[d]).join(', ') : ''), () => { restore(snap); go('plan', { replace: true }); });
+    }
+  });
+}
 function openSwap(id) {
   const r = S.routines[id]; let item = null, reason = null;
   const body = `<div class="h2" style="margin-top:4px">Which move?</div><div class="rows swap-list" style="margin:0 16px;border:1px solid var(--line);border-radius:16px;overflow:hidden">${r.items.map(it => `<button class="r" data-swapi="${it.id}" role="radio" aria-checked="false"><span class="l">${esc(it.name)}</span><span class="v">${esc(it.reps)}</span></button>`).join('')}</div>
@@ -1212,7 +1292,7 @@ const actions = {
     const d = el.dataset.d; const ids = Object.keys(S.routines).filter(id => !routinesFor(d).includes(id));
     if (!ids.length) { toast('Every workout is already on today.'); return; }
     const s = openSheet({ title: 'Add a workout', plain: true, body: '<div class="rows">' + ids.map(id => `<button class="r" data-pickr="${id}"><span class="e">${ic(S.routines[id].emoji)}</span><span class="l">${esc(S.routines[id].name)}</span></button>`).join('') + '</div>' });
-    s.el.addEventListener('click', e => { const b = e.target.closest('[data-pickr]'); if (!b) return; const L = dayLog(d, true); L.done[b.dataset.pickr] = L.done[b.dataset.pickr] || {}; openCards.add(d + b.dataset.pickr); save(); s.close(); rerender(); });
+    s.el.addEventListener('click', e => { const b = e.target.closest('[data-pickr]'); if (!b) return; const L = dayLog(d, true); L.add = (L.add || []).concat(b.dataset.pickr); L.done[b.dataset.pickr] = L.done[b.dataset.pickr] || {}; openCards.add(d + b.dataset.pickr); save(); s.close(); rerender(); });
   },
   habit(el) {
     const { d, id } = el.dataset; const hb = S.habits.find(h => h.id === id); const L = dayLog(d, true); L.habits = L.habits || {};
@@ -1236,6 +1316,12 @@ const actions = {
     });
   },
   newroutine() { routineForm(); },
+  askplan() { openAskPlan(); },
+  dotoday(el) {
+    const id = el.dataset.id, t = todayStr(); const snap = snapshot(); const L = dayLog(t, true);
+    if (addedToday(t, id)) { L.add = L.add.filter(x => x !== id); save(); rerender(); toast('Removed from today', () => restore(snap)); return; }
+    L.add = (L.add || []).concat(id); L.done[id] = L.done[id] || {}; save(); rerender(); toast(S.routines[id].name + ' added to today', () => restore(snap));
+  },
   editroutine(el) { routineForm(el.dataset.id); },
   additem(el) {
     const r = S.routines[el.dataset.id]; r.items.push(ex('New move', '10')); save(); rerender();
@@ -1321,14 +1407,15 @@ function routineForm(id) {
   const r = id ? S.routines[id] : { name: '', emoji: 'dumbbell', note: '' };
   const body = `<div class="card" style="margin:0 16px">${iconPicker(r.emoji)}
     <div class="frow"><label>Name</label><input class="field" data-f="name" value="${esc(r.name)}" style="width:190px" placeholder="Glutes"></div>
-    <div class="frow" style="display:block"><label style="display:block;margin-bottom:6px">Note</label><textarea class="field" data-f="note" rows="2" placeholder="Form cues, how you like to do it">${esc(r.note)}</textarea></div></div>`;
+    <div class="frow" style="display:block"><label style="display:block;margin-bottom:6px">Note</label><textarea class="field" data-f="note" rows="2" placeholder="Form cues, how you like to do it">${esc(r.note)}</textarea></div></div>
+    <div class="h2">Folder</div>${folderPicker(r.folder || '')}`;
   openSheet({
     title: id ? 'Edit workout' : 'New workout', body,
     save: b => {
       const g = f => b.querySelector(`[data-f="${f}"]`).value.trim();
       if (!g('name')) { b.querySelector('[data-f="name"]').classList.add('invalid'); return false; }
-      if (id) Object.assign(r, { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300) });
-      else { const nid = 'r' + uid(); S.routines[nid] = { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300), items: [ex('First move', '10')], refs: [] }; save(); go('plan/r/' + nid); return; }
+      if (id) Object.assign(r, { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300), folder: pickedFolder(b) });
+      else { const nid = 'r' + uid(); S.routines[nid] = { name: g('name').slice(0, 40), emoji: pickedIcon(b), note: g('note').slice(0, 300), items: [ex('First move', '10')], refs: [], folder: pickedFolder(b) }; save(); go('plan/r/' + nid); return; }
       save(); rerender();
     },
   });

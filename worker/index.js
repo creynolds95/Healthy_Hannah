@@ -1,7 +1,7 @@
 // Healthy Hannah API: sync + backup (D1), Web Push reminders (cron), Haiku assists.
 // Static files in /public are served by Cloudflare assets; only /api/* reaches this code.
 import { sendPush, vapidKeys } from './push.js';
-import { encourage, movesFromImage, swapMove, reflect, AiError } from './ai.js';
+import { encourage, movesFromImage, swapMove, planWorkout, reflect, AiError } from './ai.js';
 
 const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS state (id INTEGER PRIMARY KEY CHECK (id = 1), rev INTEGER NOT NULL, data TEXT NOT NULL, updated INTEGER NOT NULL)',
@@ -44,7 +44,8 @@ async function body(req, max = 4_000_000) {
 // ---- Plan math (mirrors the app) for "skip the reminder when it's done" ----
 function planFor(S, date) {
   const dow = new Date(date + 'T12:00:00Z').getUTCDay();
-  return ((S.week || {})[dow] || []).filter(id => S.routines && S.routines[id]);
+  const wk = (S.week || {})[dow] || []; const add = ((((S.log || {})[date]) || {}).add || []).filter(id => !wk.includes(id));
+  return wk.concat(add).filter(id => S.routines && S.routines[id]);
 }
 function routineDone(S, date, id) {
   const r = S.routines[id]; const done = (((S.log || {})[date] || {}).done || {})[id] || {};
@@ -178,6 +179,17 @@ async function api(req, env, url) {
   if (p === '/api/ai/swap' && m === 'POST') {
     const b = await body(req, 10_000);
     return json(await swapMove(env, { move: String(b.move || '').slice(0, 80), reps: String(b.reps || '').slice(0, 30), routine: String(b.routine || '').slice(0, 60), reason: String(b.reason || '').slice(0, 60) }));
+  }
+  if (p === '/api/ai/plan' && m === 'POST') {
+    const b = await body(req, 20_000);
+    const request = String(b.request || '').trim().slice(0, 300);
+    if (!request) return fail('Tell me what you’d like to work on.', 400);
+    const r = await planWorkout(env, { request, phase: b.phase ? String(b.phase).slice(0, 20) : null,
+      existing: (Array.isArray(b.existing) ? b.existing : []).slice(0, 12).map(x => String(x).slice(0, 40)),
+      week: b.week && typeof b.week === 'object' ? b.week : {} });
+    r.days = [...new Set((r.days || []).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))];
+    r.moves = (r.moves || []).slice(0, 12);
+    return json(r);
   }
   return fail('Not found.', 404);
 }
